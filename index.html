@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#f5f5f7">
+  <title>STRpal</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.svg">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <!-- Name Picker (first visit only) -->
+  <div id="picker-screen" class="screen">
+    <div class="auth-container">
+      <h1 class="auth-logo">STRpal</h1>
+      <p class="auth-subtitle">Crew Operations</p>
+      <div id="picker-list" style="width:100%;max-width:340px"></div>
+    </div>
+  </div>
+
+  <!-- App Shell -->
+  <div id="app-shell" class="screen active">
+    <!-- Top Bar -->
+    <header id="top-bar">
+      <h1 id="page-title">Feed</h1>
+      <button id="profile-btn" class="icon-btn" aria-label="Profile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-content">
+
+      <!-- Feed View -->
+      <div id="view-feed" class="view active">
+        <div class="feed-tabs">
+          <button class="feed-tab active" data-type="do">Need to Do</button>
+          <button class="feed-tab" data-type="get">Need to Get</button>
+        </div>
+        <div id="feed-filters">
+          <select id="feed-status-filter">
+            <option value="">All Status</option>
+            <option value="Open">Open</option>
+            <option value="Researching">Researching</option>
+            <option value="To Pay">To Pay</option>
+          </select>
+          <select id="feed-assignee-filter">
+            <option value="">Everyone</option>
+            <option value="unassigned">Unassigned</option>
+          </select>
+        </div>
+        <div id="feed-list" class="card-list"></div>
+        <button id="quick-list-btn" class="fab fab-secondary" aria-label="Quick list" hidden>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
+        <button id="add-task-btn" class="fab" aria-label="Add task">+</button>
+      </div>
+
+      <!-- Task Detail View -->
+      <div id="view-task-detail" class="view">
+        <div id="task-detail-content"></div>
+      </div>
+
+      <!-- Report Issue View -->
+      <div id="view-report" class="view">
+        <h2 class="view-heading">Report an Issue</h2>
+        <form id="report-form">
+          <div class="photo-capture">
+            <label for="report-photo" class="photo-capture-label">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Take Photo</span>
+            </label>
+            <input type="file" id="report-photo" accept="image/*" capture="environment" hidden>
+            <img id="report-photo-preview" hidden>
+          </div>
+          <textarea id="report-note" placeholder="What's the problem? (optional)" rows="3"></textarea>
+          <div class="priority-toggle">
+            <button type="button" class="priority-btn active" data-priority="HAVE">
+              <span class="priority-dot urgent"></span> Urgent Fix
+            </button>
+            <button type="button" class="priority-btn" data-priority="WANT">
+              <span class="priority-dot later"></span> For Later
+            </button>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Submit Issue</button>
+        </form>
+      </div>
+
+      <!-- Calendar View -->
+      <div id="view-calendar" class="view">
+        <div id="calendar-header">
+          <button id="cal-prev" class="icon-btn">&larr;</button>
+          <h2 id="cal-month-label"></h2>
+          <button id="cal-next" class="icon-btn">&rarr;</button>
+        </div>
+        <div id="calendar-grid"></div>
+        <div id="calendar-day-detail" hidden>
+          <h3 id="cal-day-label"></h3>
+          <div id="cal-day-events"></div>
+        </div>
+        <div id="turnover-banner" hidden>
+          <div id="turnover-info"></div>
+        </div>
+      </div>
+
+      <!-- Inventory View -->
+      <div id="view-inventory" class="view">
+        <div class="inventory-tabs">
+          <button class="inv-tab active" data-cat="Supply">Supplies</button>
+          <button class="inv-tab" data-cat="Visual Standard">Standards</button>
+        </div>
+        <div id="inventory-list" class="card-list"></div>
+        <button id="add-inventory-btn" class="fab" aria-label="Add item">+</button>
+      </div>
+
+      <!-- Reimbursement View -->
+      <div id="view-reimburse" class="view">
+        <h2 class="view-heading">Submit Expense</h2>
+        <form id="reimburse-form">
+          <div class="photo-capture">
+            <label for="receipt-photo" class="photo-capture-label">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+              <span>Photo of Receipt</span>
+            </label>
+            <input type="file" id="receipt-photo" accept="image/*" capture="environment" hidden>
+            <img id="receipt-photo-preview" hidden>
+          </div>
+          <input type="text" id="reimburse-title" placeholder="What was purchased?" required>
+          <input type="number" id="reimburse-cost" placeholder="Amount ($)" step="0.01" min="0" required>
+          <button type="submit" class="btn btn-primary btn-block">Submit for Reimbursement</button>
+        </form>
+      </div>
+
+      <!-- Admin View -->
+      <div id="view-admin" class="view">
+        <h2 class="view-heading">Team Management</h2>
+        <div id="admin-user-list" class="card-list"></div>
+        <button id="add-user-btn" class="btn btn-secondary btn-block">+ Add Team Member</button>
+      </div>
+
+      <!-- SMS Compose View -->
+      <div id="view-sms" class="view">
+        <h2 class="view-heading">Today's Schedule</h2>
+        <div id="sms-preview" class="sms-preview-box"></div>
+        <div id="sms-recipient">
+          <label for="sms-to">Send to:</label>
+          <select id="sms-to"></select>
+        </div>
+        <button id="sms-send-btn" class="btn btn-primary btn-block">Open in Messages</button>
+      </div>
+
+      <!-- Profile / Settings View -->
+      <div id="view-profile" class="view">
+        <div id="profile-content"></div>
+      </div>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav id="bottom-nav">
+      <button class="nav-btn active" data-view="feed" aria-label="Feed">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span>Feed</span>
+      </button>
+      <button class="nav-btn" data-view="report" aria-label="Report">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Report</span>
+      </button>
+      <button class="nav-btn" data-view="calendar" aria-label="Calendar">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Calendar</span>
+      </button>
+      <button class="nav-btn" data-view="inventory" aria-label="Inventory">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <span>Inventory</span>
+      </button>
+      <button class="nav-btn" data-view="admin" aria-label="Admin">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Admin</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal-header">
+      <span id="modal-header-title" class="modal-header-title"></span>
+      <button class="modal-close" onclick="hideModal()" aria-label="Close">&times;</button>
+    </div>
+    <div id="modal-content" class="modal-content"></div>
+    <div id="modal-footer" class="modal-footer"></div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- Scripts -->
+  <script>
+    window.onerror = function(msg, src, line) {
+      console.error('STRpal error:', msg, src, line);
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/views/feed.js"></script>
+  <script src="js/views/task-detail.js"></script>
+  <script src="js/views/report.js"></script>
+  <script src="js/views/calendar.js"></script>
+  <script src="js/views/inventory.js"></script>
+  <script src="js/views/reimburse.js"></script>
+  <script src="js/views/admin.js"></script>
+  <script src="js/views/sms.js"></script>
+  <script src="js/views/profile.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

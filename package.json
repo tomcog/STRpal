@@ -1,0 +1,9 @@
+{
+  "name": "strpal",
+  "version": "1.0.0",
+  "description": "STR Crew Operations PWA",
+  "scripts": {
+    "dev": "npx serve . -p 3000"
+  },
+  "license": "ISC"
+}
