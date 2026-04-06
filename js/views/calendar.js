@@ -35,7 +35,7 @@ const Calendar = {
     const year = Calendar.currentDate.getFullYear();
     const month = Calendar.currentDate.getMonth();
 
-    const firstDay = new Date(year, month, 1).getDay();
+    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Monday=0
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
 
@@ -43,7 +43,7 @@ const Calendar = {
     const dateMap = Calendar.buildDateMap(year, month, daysInMonth);
 
     let html = '';
-    const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    const dayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
     dayLabels.forEach(d => { html += `<div class="cal-day-label">${d}</div>`; });
 
     // Empty cells

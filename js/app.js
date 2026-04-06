@@ -101,6 +101,15 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function formatPhone(raw) {
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '');
+  // Handle 10-digit or 11-digit (with leading 1)
+  const d = digits.length === 11 && digits[0] === '1' ? digits.slice(1) : digits;
+  if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+  return raw;
+}
+
 function formatCurrency(val) {
   if (val == null) return '—';
   return '$' + Number(val).toFixed(2);

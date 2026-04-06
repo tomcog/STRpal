@@ -38,6 +38,7 @@ const TaskDetail = {
 
     let badges = `<span class="badge badge-${statusClass}">${escapeHtml(t.status)}</span>`;
     if (t.priority === 'HAVE') badges += '<span class="badge badge-urgent">Urgent</span>';
+    if (t.priority === 'WANT') badges += '<span class="badge badge-backlog">Backlog</span>';
     if (t.is_blocked_by_purchase) badges += '<span class="badge badge-blocked">Needs Supply</span>';
     if (t.type === 'reimbursement') badges += '<span class="badge badge-reimbursement">Reimbursement</span>';
 
@@ -293,8 +294,9 @@ const TaskDetail = {
       <div class="form-group">
         <label>Priority</label>
         <select id="modal-edit-priority">
-          <option value="HAVE" ${t.priority === 'HAVE' ? 'selected' : ''}>Must Do (HAVE)</option>
-          <option value="WANT" ${t.priority === 'WANT' ? 'selected' : ''}>Wish List (WANT)</option>
+          <option value="HAVE" ${t.priority === 'HAVE' ? 'selected' : ''}>Urgent</option>
+          <option value="NORMAL" ${t.priority === 'NORMAL' ? 'selected' : ''}>Normal</option>
+          <option value="WANT" ${t.priority === 'WANT' ? 'selected' : ''}>Backlog</option>
         </select>
       </div>
       <div class="form-group">

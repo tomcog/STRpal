@@ -38,8 +38,9 @@
       <!-- Feed View -->
       <div id="view-feed" class="view active">
         <div class="feed-tabs">
-          <button class="feed-tab active" data-type="do">Need to Do</button>
-          <button class="feed-tab" data-type="get">Need to Get</button>
+          <button class="feed-tab active" data-type="all">All</button>
+          <button class="feed-tab" data-type="do">Do</button>
+          <button class="feed-tab" data-type="get">Get</button>
         </div>
         <div id="feed-filters">
           <select id="feed-status-filter">
@@ -137,6 +138,7 @@
 
       <!-- Admin View -->
       <div id="view-admin" class="view">
+        <div id="admin-reimbursements"></div>
         <h2 class="view-heading">Team Management</h2>
         <div id="admin-user-list" class="card-list"></div>
         <button id="add-user-btn" class="btn btn-secondary btn-block">+ Add Team Member</button>
@@ -164,7 +166,7 @@
     <nav id="bottom-nav">
       <button class="nav-btn active" data-view="feed" aria-label="Feed">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        <span>Feed</span>
+        <span>Tasks</span>
       </button>
       <button class="nav-btn" data-view="report" aria-label="Report">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>

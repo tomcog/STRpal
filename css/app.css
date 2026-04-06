@@ -268,23 +268,36 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 /* ===== CHECKLIST (Need to Get) ===== */
+.checklist {
+  display: flex;
+  flex-direction: column;
+}
+
 .check-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 6px;
-  transition: opacity 0.2s;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.3s;
 }
 
+.check-item:last-child { border-bottom: none; }
+
 .check-item.checked {
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .check-item.checked .check-label {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.check-item.acquiring {
+  opacity: 0.45;
+}
+
+.check-item.acquiring .check-label {
   text-decoration: line-through;
   color: var(--text-muted);
 }
@@ -337,24 +350,39 @@ textarea { resize: vertical; min-height: 80px; }
   flex: 1;
   font-size: 15px;
   font-weight: 500;
-  cursor: pointer;
   min-width: 0;
 }
 
-.check-cost {
-  font-size: 13px;
+.checklist-section-header {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: var(--text-muted);
-  font-weight: 600;
-  flex-shrink: 0;
+  padding: 20px 0 6px;
 }
 
 .checklist-done-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-dim);
-  padding: 16px 0 6px;
+  padding: 20px 0 6px;
+}
+
+.undo-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  margin-left: 12px;
+  text-decoration: underline;
 }
 
 /* ===== CARDS ===== */
@@ -414,6 +442,9 @@ textarea { resize: vertical; min-height: 80px; }
 .badge-researching { background: var(--warning-bg); color: var(--warning); }
 .badge-to-pay { background: var(--warning-bg); color: #c77800; }
 .badge-done { background: var(--success-bg); color: var(--success); }
+.badge-backlog { background: var(--bg-input); color: var(--text-muted); }
+.badge-type-do { background: #e8f0fe; color: var(--accent); }
+.badge-type-get { background: #f0ebff; color: #6b4eff; }
 .badge-blocked { background: var(--urgent-bg); color: var(--urgent); }
 .badge-reimbursement { background: #f0ebff; color: #6b4eff; }
 
@@ -457,7 +488,8 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 .priority-btn.active { border-color: var(--accent); color: var(--text); background: #e8f0fe; }
-.priority-btn.active[data-priority="HAVE"] { border-color: var(--urgent); background: var(--urgent-bg); }
+.priority-btn.active[data-priority="HAVE"],
+.priority-btn.active[data-modal-priority="HAVE"] { border-color: var(--urgent); background: var(--urgent-bg); }
 
 .priority-dot {
   width: 10px;

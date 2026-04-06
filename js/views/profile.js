@@ -11,7 +11,7 @@ const Profile = {
 
     let html = `
       <div class="profile-name">${escapeHtml(p.name)}</div>
-      <div class="profile-phone">${escapeHtml(p.phone_number || '')}</div>
+      <div class="profile-phone">${formatPhone(p.phone_number)}</div>
     `;
 
     // Quick links

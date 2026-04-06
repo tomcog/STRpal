@@ -1,8 +1,10 @@
 // Feed View — unified task queue
 const Feed = {
-  type: 'do',
+  type: 'all',
   statusFilter: '',
   assigneeFilter: '',
+  _undoTimer: null,
+  _undoId: null,
 
   init() {
     document.getElementById('add-task-btn').addEventListener('click', () => {
@@ -39,23 +41,25 @@ const Feed = {
     const list = document.getElementById('feed-list');
     list.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
 
-    // Show/hide filters and quick list button based on tab
-    document.getElementById('feed-filters').style.display = Feed.type === 'do' ? 'flex' : 'none';
+    document.getElementById('feed-filters').style.display = Feed.type !== 'get' ? 'flex' : 'none';
     document.getElementById('quick-list-btn').hidden = Feed.type !== 'get';
 
     Feed.populateAssigneeFilter();
 
     let query = sb.from('tasks')
       .select('*, assigned_user:users!tasks_assigned_to_fkey(name)')
-      .eq('type', Feed.type)
+      .neq('type', 'reimbursement')
       .order('created_at', { ascending: false });
 
-    // For "do" tab, hide done items. For "get" tab, show all (so you can see checked-off items)
-    if (Feed.type === 'do') {
+    if (Feed.type !== 'all') {
+      query = query.eq('type', Feed.type);
+    }
+
+    if (Feed.type !== 'get') {
       query = query.neq('status', 'Done');
     }
 
-    if (Feed.statusFilter && Feed.type === 'do') {
+    if (Feed.statusFilter && Feed.type !== 'get') {
       query = query.eq('status', Feed.statusFilter);
     }
 
@@ -65,7 +69,17 @@ const Feed = {
       query = query.eq('assigned_to', Feed.assigneeFilter);
     }
 
-    const { data: tasks, error } = await query;
+    let { data: tasks, error } = await query;
+
+    if (!error && tasks) {
+      tasks.sort((a, b) => {
+        // Items with due dates first, then by soonest due date
+        if (a.due_date && !b.due_date) return -1;
+        if (!a.due_date && b.due_date) return 1;
+        if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+        return 0;
+      });
+    }
 
     if (error) {
       list.innerHTML = '<div class="empty-state"><p>Failed to load tasks</p></div>';
@@ -73,15 +87,17 @@ const Feed = {
     }
 
     if (!tasks || tasks.length === 0) {
-      const label = Feed.type === 'do' ? 'to-do' : 'shopping';
-      list.innerHTML = `<div class="empty-state"><p>No ${label} items yet</p></div>`;
+      const labels = { all: '', do: 'to-do ', get: 'shopping ' };
+      list.innerHTML = `<div class="empty-state"><p>No ${labels[Feed.type]}items yet</p></div>`;
       return;
     }
 
     if (Feed.type === 'get') {
-      Feed.renderChecklist(list, tasks);
+      Feed.renderGetTab(list, tasks);
+    } else if (Feed.type === 'all') {
+      Feed.renderAllTab(list, tasks);
     } else {
-      list.innerHTML = tasks.map(t => Feed.renderCard(t)).join('');
+      list.innerHTML = tasks.map(t => Feed.renderCard(t, false)).join('');
       list.querySelectorAll('.card').forEach(card => {
         card.addEventListener('click', () => {
           Router.navigate('task-detail', card.dataset.id);
@@ -90,36 +106,128 @@ const Feed = {
     }
   },
 
-  // ---- "Need to Get" checklist rendering ----
+  // ---- "Need to Get" tab ----
 
-  renderChecklist(list, tasks) {
+  isSimpleItem(task) {
+    return !task.description && !task.due_date && task.cost == null;
+  },
+
+  renderGetTab(list, tasks) {
     const pending = tasks.filter(t => t.status !== 'Done');
     const done = tasks.filter(t => t.status === 'Done');
 
+    const simpleItems = pending.filter(t => Feed.isSimpleItem(t));
+    const plannedItems = pending.filter(t => !Feed.isSimpleItem(t));
+
     let html = '';
 
-    if (pending.length > 0) {
-      html += pending.map(t => Feed.renderCheckItem(t, false)).join('');
+    // Planned items first — rendered as cards
+    if (plannedItems.length > 0) {
+      html += plannedItems.map(t => Feed.renderGetCard(t)).join('');
     }
 
+    // Simple items — checklist
+    if (simpleItems.length > 0) {
+      if (plannedItems.length > 0) {
+        html += '<div class="checklist-section-header">Shopping List</div>';
+      }
+      html += '<div class="checklist">';
+      html += simpleItems.map(t => Feed.renderCheckItem(t, false)).join('');
+      html += '</div>';
+    }
+
+    // Acquired items
     if (done.length > 0) {
-      html += `<div class="checklist-done-header">${done.length} acquired</div>`;
+      html += `<div class="checklist-done-header">
+        <span>${done.length} acquired</span>
+        <button class="btn btn-sm btn-secondary" onclick="Feed.showReimbursementModal()">Submit for Reimbursement</button>
+      </div>`;
+      html += '<div class="checklist">';
       html += done.map(t => Feed.renderCheckItem(t, true)).join('');
+      html += '</div>';
     }
 
     list.innerHTML = html;
 
+    // Card click handlers
+    list.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', () => {
+        Router.navigate('task-detail', card.dataset.id);
+      });
+    });
+
     // Checkbox handlers
     list.querySelectorAll('.check-item').forEach(row => {
       const cb = row.querySelector('input[type="checkbox"]');
+      const isDone = cb.checked;
       cb.addEventListener('change', () => {
-        Feed.toggleGetItem(row.dataset.id, cb.checked);
-      });
-      // Long-press / click on text goes to detail
-      row.querySelector('.check-label').addEventListener('click', () => {
-        Router.navigate('task-detail', row.dataset.id);
+        if (cb.checked) {
+          Feed.startAcquireTimer(row, row.dataset.id);
+        } else {
+          Feed.toggleGetItem(row.dataset.id, false);
+        }
       });
     });
+  },
+
+  renderAllTab(list, tasks) {
+    const cardItems = tasks.filter(t => !(t.type === 'get' && Feed.isSimpleItem(t) && t.status !== 'Done'));
+    const simpleGetItems = tasks.filter(t => t.type === 'get' && Feed.isSimpleItem(t) && t.status !== 'Done');
+
+    let html = '';
+
+    if (cardItems.length > 0) {
+      html += cardItems.map(t => Feed.renderCard(t, true)).join('');
+    }
+
+    if (simpleGetItems.length > 0) {
+      html += '<div class="checklist-section-header">Shopping List</div>';
+      html += '<div class="checklist">';
+      html += simpleGetItems.map(t => Feed.renderCheckItem(t, false)).join('');
+      html += '</div>';
+    }
+
+    list.innerHTML = html;
+
+    list.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', () => {
+        Router.navigate('task-detail', card.dataset.id);
+      });
+    });
+
+    list.querySelectorAll('.check-item').forEach(row => {
+      const cb = row.querySelector('input[type="checkbox"]');
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          Feed.startAcquireTimer(row, row.dataset.id);
+        } else {
+          Feed.toggleGetItem(row.dataset.id, false);
+        }
+      });
+    });
+  },
+
+  renderGetCard(task) {
+    const badges = [];
+    if (task.priority === 'HAVE') badges.push('<span class="badge badge-urgent">Urgent</span>');
+    if (task.priority === 'WANT') badges.push('<span class="badge badge-backlog">Backlog</span>');
+    badges.push('<span class="badge badge-open">Open</span>');
+
+    const costHtml = task.cost != null
+      ? `<span class="text-sm text-muted">${formatCurrency(task.cost)}</span>`
+      : '';
+
+    return `
+      <div class="card" data-id="${task.id}">
+        <div class="card-header">
+          <div class="card-title">${escapeHtml(task.title)}</div>
+          ${costHtml}
+        </div>
+        <div class="card-meta">${badges.join('')}</div>
+        ${task.description ? `<div class="card-body">${escapeHtml(task.description).slice(0, 120)}</div>` : ''}
+        ${task.due_date ? `<div class="card-body text-sm" style="margin-top:4px">Due ${formatDate(task.due_date)}</div>` : ''}
+      </div>
+    `;
   },
 
   renderCheckItem(task, isDone) {
@@ -130,9 +238,53 @@ const Feed = {
           <span class="check-mark"></span>
         </label>
         <span class="check-label">${escapeHtml(task.title)}</span>
-        ${task.cost != null ? `<span class="check-cost">${formatCurrency(task.cost)}</span>` : ''}
       </div>
     `;
+  },
+
+  startAcquireTimer(row, id) {
+    // Cancel any existing timer
+    Feed.cancelUndo();
+
+    Feed._undoId = id;
+    row.classList.add('acquiring');
+
+    // Show undo toast
+    const el = document.getElementById('toast');
+    el.innerHTML = 'Marked as acquired <button class="undo-btn" onclick="Feed.cancelUndo(true)">Undo</button>';
+    el.hidden = false;
+    el.classList.add('show');
+
+    Feed._undoTimer = setTimeout(async () => {
+      Feed._undoTimer = null;
+      Feed._undoId = null;
+      el.classList.remove('show');
+      setTimeout(() => { el.hidden = true; }, 300);
+      await sb.from('tasks')
+        .update({ status: 'Done', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      Feed.load();
+    }, 3000);
+  },
+
+  cancelUndo(manual) {
+    if (Feed._undoTimer) {
+      clearTimeout(Feed._undoTimer);
+      Feed._undoTimer = null;
+    }
+    if (Feed._undoId) {
+      const row = document.querySelector(`.check-item[data-id="${Feed._undoId}"]`);
+      if (row) {
+        row.classList.remove('acquiring');
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (cb) cb.checked = false;
+      }
+      Feed._undoId = null;
+    }
+    const el = document.getElementById('toast');
+    el.classList.remove('show');
+    setTimeout(() => { el.hidden = true; }, 300);
+    if (manual) toast('Undone');
   },
 
   async toggleGetItem(id, acquired) {
@@ -143,14 +295,149 @@ const Feed = {
     Feed.load();
   },
 
+  // ---- Reimbursement from acquired items ----
+
+  showReimbursementModal() {
+    // Get acquired items from the currently rendered list
+    const doneItems = document.querySelectorAll('.check-item.checked');
+    const ids = Array.from(doneItems).map(el => el.dataset.id);
+    const names = Array.from(doneItems).map(el => el.querySelector('.check-label').textContent);
+
+    if (ids.length === 0) { toast('No acquired items'); return; }
+
+    const itemListHtml = names.map((n, i) =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px">
+        <input type="checkbox" checked data-reimb-id="${ids[i]}" class="reimb-check">
+        ${escapeHtml(n)}
+      </label>`
+    ).join('');
+
+    showModal(`
+      <h3 class="modal-title">Submit for Reimbursement</h3>
+      <div class="form-group">
+        <label>Select items</label>
+        <div style="max-height:200px;overflow-y:auto">${itemListHtml}</div>
+      </div>
+      <div class="form-group">
+        <label>Where purchased</label>
+        <input type="text" id="modal-reimb-where" placeholder="e.g. Home Depot, Amazon">
+      </div>
+      <div class="form-group">
+        <label>Purchased by</label>
+        <select id="modal-reimb-who">
+          <option value="">Select person</option>
+          ${App.allUsers.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Total cost</label>
+        <input type="number" id="modal-reimb-cost" placeholder="0.00" step="0.01">
+      </div>
+      <div class="photo-capture">
+        <label for="reimb-receipt-photo" class="photo-capture-label">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+          <span>Photo of Receipt</span>
+        </label>
+        <input type="file" id="reimb-receipt-photo" accept="image/*" capture="environment" hidden>
+        <img id="reimb-receipt-preview" hidden>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="Feed.doSubmitReimbursement()">Submit</button>
+      </div>
+    `);
+
+    // Photo preview
+    setTimeout(() => {
+      const input = document.getElementById('reimb-receipt-photo');
+      if (input) {
+        input.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          Feed._reimbReceiptFile = file;
+          const preview = document.getElementById('reimb-receipt-preview');
+          preview.src = URL.createObjectURL(file);
+          preview.hidden = false;
+          input.closest('.photo-capture').querySelector('.photo-capture-label').classList.add('has-photo');
+        });
+      }
+    }, 50);
+  },
+
+  _reimbReceiptFile: null,
+
+  async doSubmitReimbursement() {
+    const checked = document.querySelectorAll('.reimb-check:checked');
+    const ids = Array.from(checked).map(cb => cb.dataset.reimbId);
+    if (ids.length === 0) { toast('Select at least one item'); return; }
+
+    const where = document.getElementById('modal-reimb-where').value.trim();
+    const who = document.getElementById('modal-reimb-who').value;
+    const cost = document.getElementById('modal-reimb-cost').value;
+
+    if (!cost || Number(cost) <= 0) { toast('Enter the total cost'); return; }
+
+    let receiptUrl = null;
+    if (Feed._reimbReceiptFile) {
+      try {
+        receiptUrl = await uploadPhoto('photos', Feed._reimbReceiptFile);
+      } catch (e) {
+        toast('Failed to upload receipt');
+        return;
+      }
+    }
+
+    // Get item names for the reimbursement title
+    const names = Array.from(checked).map(cb => {
+      const row = cb.closest('label');
+      return row ? row.textContent.trim() : '';
+    }).filter(n => n);
+
+    const title = 'Reimbursement: ' + (names.length <= 3 ? names.join(', ') : names.slice(0, 3).join(', ') + ` +${names.length - 3} more`);
+    const description = [
+      where ? `Purchased at: ${where}` : null,
+      `Items: ${names.join(', ')}`,
+    ].filter(Boolean).join('\n');
+
+    const { error } = await sb.from('tasks').insert({
+      title,
+      description,
+      receipt_image_url: receiptUrl,
+      cost: Number(cost),
+      priority: 'HAVE',
+      status: 'To Pay',
+      type: 'reimbursement',
+      created_by: who || App.profile?.id || null,
+      assigned_to: who || null,
+    });
+
+    if (error) { toast('Failed to submit'); return; }
+
+    // Remove acquired items from the list
+    for (const id of ids) {
+      await sb.from('tasks').delete().eq('id', id);
+    }
+
+    Feed._reimbReceiptFile = null;
+    hideModal();
+    toast('Reimbursement submitted');
+    Feed.load();
+  },
+
   // ---- "Need to Do" card rendering ----
 
-  renderCard(task) {
+  renderCard(task, showType) {
     const assignee = task.assigned_user?.name || 'Unassigned';
     const statusClass = task.status.toLowerCase().replace(/\s/g, '-');
     const badges = [];
 
+    if (showType) {
+      const typeLabel = task.type === 'do' ? 'Do' : 'Get';
+      badges.push(`<span class="badge badge-type-${task.type}">${typeLabel}</span>`);
+    }
+
     if (task.priority === 'HAVE') badges.push('<span class="badge badge-urgent">Urgent</span>');
+    if (task.priority === 'WANT') badges.push('<span class="badge badge-backlog">Backlog</span>');
     if (task.is_blocked_by_purchase) badges.push('<span class="badge badge-blocked">Needs Supply</span>');
     badges.push(`<span class="badge badge-${statusClass}">${escapeHtml(task.status)}</span>`);
 
@@ -199,7 +486,7 @@ const Feed = {
     const rows = lines.map(title => ({
       title,
       type: 'get',
-      priority: 'HAVE',
+      priority: 'NORMAL',
       status: 'Open',
       is_blocked_by_purchase: true,
       created_by: App.profile?.id || null,
@@ -223,7 +510,7 @@ const Feed = {
 
     const isGet = Feed.type === 'get';
     Feed._modalType = Feed.type;
-    Feed._modalPriority = 'HAVE';
+    Feed._modalPriority = 'NORMAL';
 
     showModal(`
       <h3 class="modal-title">New Item</h3>
@@ -248,8 +535,8 @@ const Feed = {
       </div>
       <div class="form-group">
         <label>Priority</label>
-        <div class="priority-toggle" style="margin:0">
-          <button type="button" class="priority-btn active" data-modal-priority="HAVE" onclick="Feed.toggleModalPriority(this)">
+        <div class="priority-toggle priority-3" style="margin:0">
+          <button type="button" class="priority-btn" data-modal-priority="HAVE" onclick="Feed.toggleModalPriority(this)">
             <span class="priority-dot urgent"></span> Urgent
           </button>
           <button type="button" class="priority-btn" data-modal-priority="WANT" onclick="Feed.toggleModalPriority(this)">
@@ -289,9 +576,16 @@ const Feed = {
   },
 
   toggleModalPriority(btn) {
-    Feed._modalPriority = btn.dataset.modalPriority;
-    btn.closest('.priority-toggle').querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    const toggle = btn.closest('.priority-toggle');
+    if (btn.classList.contains('active')) {
+      // Deselect — back to normal
+      btn.classList.remove('active');
+      Feed._modalPriority = 'NORMAL';
+    } else {
+      toggle.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Feed._modalPriority = btn.dataset.modalPriority;
+    }
   },
 
   async doCreateTask() {
@@ -315,7 +609,6 @@ const Feed = {
     hideModal();
     if (error) { toast('Failed to create: ' + error.message); return; }
     toast('Item created');
-    // Switch to the tab matching what was just created
     Feed.type = Feed._modalType;
     document.querySelectorAll('.feed-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.type === Feed.type);

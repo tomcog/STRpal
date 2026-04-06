@@ -63,7 +63,7 @@ const Router = {
 
     // Update title
     const titles = {
-      feed: 'Feed',
+      feed: 'Tasks',
       report: 'Report',
       calendar: 'Calendar',
       inventory: 'Inventory',
