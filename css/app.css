@@ -612,6 +612,49 @@ textarea { resize: vertical; min-height: 80px; }
   margin-top: 16px;
 }
 
+/* ===== TASK LINKS ===== */
+.task-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+
+.task-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.task-link-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-link-delete {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  line-height: 1;
+  padding: 0 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.task-link-delete:hover { color: var(--urgent); }
+
 /* ===== SHORTLIST ===== */
 .shortlist-item {
   background: var(--bg-input);

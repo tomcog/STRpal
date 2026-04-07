@@ -2,6 +2,7 @@
 const TaskDetail = {
   task: null,
   shortlistOptions: [],
+  links: [],
 
   async load(taskId) {
     const container = document.getElementById('task-detail-content');
@@ -19,13 +20,14 @@ const TaskDetail = {
 
     TaskDetail.task = task;
 
-    // Load shortlist options
-    const { data: options } = await sb.from('shortlist_options')
-      .select('*')
-      .eq('task_id', taskId)
-      .order('price', { ascending: true });
+    // Load shortlist options and links in parallel
+    const [{ data: options }, { data: links }] = await Promise.all([
+      sb.from('shortlist_options').select('*').eq('task_id', taskId).order('price', { ascending: true }),
+      sb.from('task_links').select('*').eq('task_id', taskId).order('created_at', { ascending: true }),
+    ]);
 
     TaskDetail.shortlistOptions = options || [];
+    TaskDetail.links = links || [];
     TaskDetail.render();
   },
 
@@ -90,6 +92,27 @@ const TaskDetail = {
       </div>`;
     }
 
+    html += '</div>';
+
+    // Links section
+    html += '<div class="detail-section">';
+    html += '<div class="detail-section-title">Links</div>';
+    if (TaskDetail.links.length > 0) {
+      TaskDetail.links.forEach(link => {
+        html += `
+          <div class="task-link-row">
+            <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener" class="task-link">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <span class="task-link-title">${escapeHtml(link.title)}</span>
+            </a>
+            <button class="task-link-delete" onclick="TaskDetail.removeLink('${link.id}')" aria-label="Remove">&times;</button>
+          </div>
+        `;
+      });
+    } else {
+      html += '<p class="text-sm text-muted">No links yet</p>';
+    }
+    html += `<button class="btn btn-sm btn-secondary" style="margin-top:10px" onclick="TaskDetail.showAddLinkModal()">+ Add Link</button>`;
     html += '</div>';
 
     // Receipt image (for reimbursements)
@@ -162,6 +185,48 @@ const TaskDetail = {
     html += '</div>';
 
     container.innerHTML = html;
+  },
+
+  showAddLinkModal() {
+    showModal(`
+      <h3 class="modal-title">Add Link</h3>
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="modal-link-title" placeholder="e.g. Amazon listing">
+      </div>
+      <div class="form-group">
+        <label>URL</label>
+        <input type="url" id="modal-link-url" placeholder="https://...">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="TaskDetail.doAddLink()">Add</button>
+      </div>
+    `);
+    setTimeout(() => document.getElementById('modal-link-title')?.focus(), 100);
+  },
+
+  async doAddLink() {
+    const title = document.getElementById('modal-link-title').value.trim();
+    const url = document.getElementById('modal-link-url').value.trim();
+    if (!title) { toast('Enter a title'); return; }
+    if (!url) { toast('Enter a URL'); return; }
+
+    const { error } = await sb.from('task_links').insert({
+      task_id: TaskDetail.task.id,
+      title,
+      url,
+    });
+    hideModal();
+    if (error) { toast('Failed to add link'); return; }
+    toast('Link added');
+    TaskDetail.load(TaskDetail.task.id);
+  },
+
+  async removeLink(id) {
+    const { error } = await sb.from('task_links').delete().eq('id', id);
+    if (error) { toast('Failed to remove'); return; }
+    TaskDetail.load(TaskDetail.task.id);
   },
 
   confirmDelete() {
