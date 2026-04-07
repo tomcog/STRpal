@@ -156,9 +156,34 @@ const TaskDetail = {
       html += `<button class="btn btn-ghost btn-block" onclick="TaskDetail.showEditModal()">Edit Task</button>`;
     }
 
+    // Delete button
+    html += `<button class="btn btn-danger btn-block" onclick="TaskDetail.confirmDelete()">Delete Task</button>`;
+
     html += '</div>';
 
     container.innerHTML = html;
+  },
+
+  confirmDelete() {
+    showModal(`
+      <h3 class="modal-title">Delete Task?</h3>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.5">
+        This will permanently remove "${escapeHtml(TaskDetail.task.title)}". This cannot be undone.
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="TaskDetail.doDelete()">Delete</button>
+      </div>
+    `);
+  },
+
+  async doDelete() {
+    const id = TaskDetail.task.id;
+    const { error } = await sb.from('tasks').delete().eq('id', id);
+    hideModal();
+    if (error) { toast('Failed to delete'); return; }
+    toast('Task deleted');
+    Router.back();
   },
 
   async setStatus(status) {
