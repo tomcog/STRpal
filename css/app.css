@@ -353,6 +353,21 @@ textarea { resize: vertical; min-height: 80px; }
   min-width: 0;
 }
 
+.check-edit {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.check-edit:hover { color: var(--accent); background: var(--bg-input); }
+
 .checklist-section-header {
   font-size: 12px;
   font-weight: 700;

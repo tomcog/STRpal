@@ -159,7 +159,6 @@ const Feed = {
     // Checkbox handlers
     list.querySelectorAll('.check-item').forEach(row => {
       const cb = row.querySelector('input[type="checkbox"]');
-      const isDone = cb.checked;
       cb.addEventListener('change', () => {
         if (cb.checked) {
           Feed.startAcquireTimer(row, row.dataset.id);
@@ -167,6 +166,13 @@ const Feed = {
           Feed.toggleGetItem(row.dataset.id, false);
         }
       });
+      const editBtn = row.querySelector('.check-edit');
+      if (editBtn) {
+        editBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          Feed.showCheckItemEditModal(row.dataset.id);
+        });
+      }
     });
   },
 
@@ -204,6 +210,13 @@ const Feed = {
           Feed.toggleGetItem(row.dataset.id, false);
         }
       });
+      const editBtn = row.querySelector('.check-edit');
+      if (editBtn) {
+        editBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          Feed.showCheckItemEditModal(row.dataset.id);
+        });
+      }
     });
   },
 
@@ -238,6 +251,9 @@ const Feed = {
           <span class="check-mark"></span>
         </label>
         <span class="check-label">${escapeHtml(task.title)}</span>
+        <button class="check-edit" aria-label="Edit item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
       </div>
     `;
   },
@@ -462,6 +478,88 @@ const Feed = {
   },
 
   // ---- Modals ----
+
+  async showCheckItemEditModal(id) {
+    const { data: task } = await sb.from('tasks').select('*').eq('id', id).single();
+    if (!task) { toast('Item not found'); return; }
+
+    Feed._editId = id;
+
+    showModal(`
+      <h3 class="modal-title">Edit Item</h3>
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="modal-edit-item-title" value="${escapeHtml(task.title)}">
+      </div>
+      <div class="form-group">
+        <label>Notes / Links</label>
+        <textarea id="modal-edit-item-desc" rows="3" placeholder="Notes, product URLs, options...">${escapeHtml(task.description || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Due Date</label>
+        <input type="date" id="modal-edit-item-due" value="${task.due_date || ''}">
+      </div>
+      <div class="form-group">
+        <label>Estimated Cost</label>
+        <input type="number" id="modal-edit-item-cost" value="${task.cost ?? ''}" step="0.01" placeholder="0.00">
+      </div>
+      <p class="text-sm text-muted" style="margin-top:8px">
+        Adding any of the above will move this item out of the simple checklist.
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-danger" onclick="Feed.confirmDeleteCheckItem()">Delete</button>
+        <button class="btn btn-primary" onclick="Feed.doSaveCheckItem()">Save</button>
+      </div>
+    `);
+  },
+
+  _editId: null,
+
+  async doSaveCheckItem() {
+    const id = Feed._editId;
+    if (!id) return;
+
+    const updates = {
+      title: document.getElementById('modal-edit-item-title').value.trim(),
+      description: document.getElementById('modal-edit-item-desc').value.trim() || null,
+      due_date: document.getElementById('modal-edit-item-due').value || null,
+      cost: document.getElementById('modal-edit-item-cost').value ? Number(document.getElementById('modal-edit-item-cost').value) : null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (!updates.title) { toast('Title is required'); return; }
+
+    const { error } = await sb.from('tasks').update(updates).eq('id', id);
+    hideModal();
+    if (error) { toast('Failed to save'); return; }
+    toast('Item updated');
+    Feed.load();
+  },
+
+  confirmDeleteCheckItem() {
+    const id = Feed._editId;
+    if (!id) return;
+    const title = document.getElementById('modal-edit-item-title').value.trim();
+
+    showModal(`
+      <h3 class="modal-title">Delete Item?</h3>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.5">
+        This will permanently remove "${escapeHtml(title)}". This cannot be undone.
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="Feed.doDeleteCheckItem('${id}')">Delete</button>
+      </div>
+    `);
+  },
+
+  async doDeleteCheckItem(id) {
+    const { error } = await sb.from('tasks').delete().eq('id', id);
+    hideModal();
+    if (error) { toast('Failed to delete'); return; }
+    toast('Item deleted');
+    Feed.load();
+  },
 
   showQuickListModal() {
     showModal(`
