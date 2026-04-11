@@ -26,7 +26,7 @@
   <div id="app-shell" class="screen active">
     <!-- Top Bar -->
     <header id="top-bar">
-      <h1 id="page-title">Feed</h1>
+      <h1 id="page-title">Tasks</h1>
       <button id="profile-btn" class="icon-btn" aria-label="Profile">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </button>
@@ -37,12 +37,7 @@
 
       <!-- Feed View -->
       <div id="view-feed" class="view active">
-        <div class="feed-tabs">
-          <button class="feed-tab active" data-type="all">All</button>
-          <button class="feed-tab" data-type="do">Do</button>
-          <button class="feed-tab" data-type="get">Get</button>
-        </div>
-        <div id="feed-filters">
+        <div id="feed-filters" hidden>
           <select id="feed-status-filter">
             <option value="">All Status</option>
             <option value="Open">Open</option>
@@ -58,7 +53,7 @@
         <button id="quick-list-btn" class="fab fab-secondary" aria-label="Quick list" hidden>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         </button>
-        <button id="add-task-btn" class="fab" aria-label="Add task">+</button>
+        <button id="add-task-btn" class="fab" aria-label="Add task" hidden>+</button>
       </div>
 
       <!-- Task Detail View -->

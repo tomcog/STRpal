@@ -165,12 +165,15 @@ const TaskDetail = {
     }
 
     // Status transitions
+    const hasPurchaseFlow = t.type === 'get' || t.type === 'reimbursement';
     if (t.status === 'Open') {
-      html += `<button class="btn btn-secondary btn-block" onclick="TaskDetail.setStatus('Researching')">Move to Researching</button>`;
+      if (hasPurchaseFlow) {
+        html += `<button class="btn btn-secondary btn-block" onclick="TaskDetail.setStatus('Researching')">Move to Researching</button>`;
+      }
       html += `<button class="btn btn-primary btn-block" onclick="TaskDetail.setStatus('Done')">Mark Done</button>`;
-    } else if (t.status === 'Researching') {
-      html += `<button class="btn btn-secondary btn-block" onclick="TaskDetail.setStatus('To Pay')">Ready to Pay</button>`;
-    } else if (t.status === 'To Pay' && isFinance) {
+    } else if (t.status === 'Researching' && hasPurchaseFlow) {
+      html += `<button class="btn btn-primary btn-block" onclick="TaskDetail.setStatus('Done')">Mark Done</button>`;
+    } else if (t.status === 'To Pay' && isFinance && hasPurchaseFlow) {
       html += `<button class="btn btn-primary btn-block" onclick="TaskDetail.setStatus('Done')">Mark Paid & Done</button>`;
     }
 
@@ -373,6 +376,18 @@ const TaskDetail = {
 
     showModal(`
       <h3 class="modal-title">Edit Task</h3>
+      ${t.type === 'reimbursement' ? '' : `
+      <div class="form-group">
+        <label>Type</label>
+        <div class="priority-toggle" style="margin:0">
+          <button type="button" class="priority-btn ${t.type === 'do' ? 'active' : ''}" data-edit-type="do" onclick="TaskDetail.toggleEditType(this)">
+            Need to Do
+          </button>
+          <button type="button" class="priority-btn ${t.type === 'get' ? 'active' : ''}" data-edit-type="get" onclick="TaskDetail.toggleEditType(this)">
+            Need to Get
+          </button>
+        </div>
+      </div>`}
       <div class="form-group">
         <label>Title</label>
         <input type="text" id="modal-edit-title" value="${escapeHtml(t.title)}">
@@ -393,8 +408,9 @@ const TaskDetail = {
         <label>Status</label>
         <select id="modal-edit-status">
           <option value="Open" ${t.status === 'Open' ? 'selected' : ''}>Open</option>
+          ${t.type === 'get' || t.type === 'reimbursement' ? `
           <option value="Researching" ${t.status === 'Researching' ? 'selected' : ''}>Researching</option>
-          <option value="To Pay" ${t.status === 'To Pay' ? 'selected' : ''}>To Pay</option>
+          <option value="To Pay" ${t.status === 'To Pay' ? 'selected' : ''}>To Pay</option>` : ''}
           <option value="Done" ${t.status === 'Done' ? 'selected' : ''}>Done</option>
         </select>
       </div>
@@ -413,7 +429,7 @@ const TaskDetail = {
         <label>Cost</label>
         <input type="number" id="modal-edit-cost" value="${t.cost ?? ''}" step="0.01">
       </div>
-      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <div class="form-group" id="modal-edit-blocked-group" style="display:${t.type === 'get' || t.type === 'reimbursement' ? 'none' : 'flex'};align-items:center;gap:10px">
         <label class="toggle" style="margin:0">
           <input type="checkbox" id="modal-edit-blocked" ${t.is_blocked_by_purchase ? 'checked' : ''}>
           <span class="toggle-slider"></span>
@@ -425,9 +441,20 @@ const TaskDetail = {
         <button class="btn btn-primary" onclick="TaskDetail.doEdit()">Save</button>
       </div>
     `);
+    TaskDetail._editType = t.type;
+  },
+
+  toggleEditType(btn) {
+    TaskDetail._editType = btn.dataset.editType;
+    btn.closest('.priority-toggle').querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const blockedGroup = document.getElementById('modal-edit-blocked-group');
+    if (blockedGroup) blockedGroup.style.display = TaskDetail._editType === 'get' ? 'none' : 'flex';
   },
 
   async doEdit() {
+    const blockedEl = document.getElementById('modal-edit-blocked');
+    const newType = TaskDetail._editType || TaskDetail.task.type;
     const updates = {
       title: document.getElementById('modal-edit-title').value.trim(),
       description: document.getElementById('modal-edit-desc').value.trim() || null,
@@ -436,7 +463,8 @@ const TaskDetail = {
       assigned_to: document.getElementById('modal-edit-assignee').value || null,
       due_date: document.getElementById('modal-edit-due').value || null,
       cost: document.getElementById('modal-edit-cost').value ? Number(document.getElementById('modal-edit-cost').value) : null,
-      is_blocked_by_purchase: document.getElementById('modal-edit-blocked').checked,
+      type: newType,
+      is_blocked_by_purchase: newType === 'get' ? true : (blockedEl ? blockedEl.checked : TaskDetail.task.is_blocked_by_purchase),
       updated_at: new Date().toISOString(),
     };
 

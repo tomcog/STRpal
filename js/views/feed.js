@@ -1,12 +1,16 @@
 // Feed View — unified task queue
 const Feed = {
-  type: 'all',
   statusFilter: '',
   assigneeFilter: '',
+  collapsed: {},
   _undoTimer: null,
   _undoId: null,
 
   init() {
+    try {
+      Feed.collapsed = JSON.parse(localStorage.getItem('feed_collapsed') || '{}');
+    } catch (e) { Feed.collapsed = {}; }
+
     document.getElementById('add-task-btn').addEventListener('click', () => {
       Feed.showAddTaskModal();
     });
@@ -14,233 +18,120 @@ const Feed = {
     document.getElementById('quick-list-btn').addEventListener('click', () => {
       Feed.showQuickListModal();
     });
-
-    // Tab switching
-    document.querySelectorAll('.feed-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.feed-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        Feed.type = tab.dataset.type;
-        Feed.load();
-      });
-    });
-
-    // Filters
-    document.getElementById('feed-status-filter').addEventListener('change', (e) => {
-      Feed.statusFilter = e.target.value;
-      Feed.load();
-    });
-
-    document.getElementById('feed-assignee-filter').addEventListener('change', (e) => {
-      Feed.assigneeFilter = e.target.value;
-      Feed.load();
-    });
   },
 
   async load() {
     const list = document.getElementById('feed-list');
     list.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
 
-    document.getElementById('feed-filters').style.display = Feed.type !== 'get' ? 'flex' : 'none';
-    document.getElementById('quick-list-btn').hidden = Feed.type !== 'get';
-
     Feed.populateAssigneeFilter();
 
-    let query = sb.from('tasks')
+    let { data: tasks, error } = await sb.from('tasks')
       .select('*, assigned_user:users!tasks_assigned_to_fkey(name)')
       .neq('type', 'reimbursement')
+      .neq('status', 'Done')
       .order('created_at', { ascending: false });
-
-    if (Feed.type !== 'all') {
-      query = query.eq('type', Feed.type);
-    }
-
-    if (Feed.type !== 'get') {
-      query = query.neq('status', 'Done');
-    }
-
-    if (Feed.statusFilter && Feed.type !== 'get') {
-      query = query.eq('status', Feed.statusFilter);
-    }
-
-    if (Feed.assigneeFilter === 'unassigned') {
-      query = query.is('assigned_to', null);
-    } else if (Feed.assigneeFilter) {
-      query = query.eq('assigned_to', Feed.assigneeFilter);
-    }
-
-    let { data: tasks, error } = await query;
-
-    if (!error && tasks) {
-      tasks.sort((a, b) => {
-        // Items with due dates first, then by soonest due date
-        if (a.due_date && !b.due_date) return -1;
-        if (!a.due_date && b.due_date) return 1;
-        if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
-        return 0;
-      });
-    }
 
     if (error) {
       list.innerHTML = '<div class="empty-state"><p>Failed to load tasks</p></div>';
       return;
     }
 
-    if (!tasks || tasks.length === 0) {
-      const labels = { all: '', do: 'to-do ', get: 'shopping ' };
-      list.innerHTML = `<div class="empty-state"><p>No ${labels[Feed.type]}items yet</p></div>`;
-      return;
-    }
+    tasks = tasks || [];
+    tasks.sort((a, b) => {
+      if (a.due_date && !b.due_date) return -1;
+      if (!a.due_date && b.due_date) return 1;
+      if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+      return 0;
+    });
 
-    if (Feed.type === 'get') {
-      Feed.renderGetTab(list, tasks);
-    } else if (Feed.type === 'all') {
-      Feed.renderAllTab(list, tasks);
-    } else {
-      list.innerHTML = tasks.map(t => Feed.renderCard(t, false)).join('');
-      list.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('click', () => {
-          Router.navigate('task-detail', card.dataset.id);
-        });
-      });
-    }
+    Feed.render(list, tasks);
   },
 
-  // ---- "Need to Get" tab ----
+  render(list, tasks) {
+    const doCards = tasks.filter(t => t.type === 'do');
+    const getCards = tasks.filter(t => t.type === 'get' && !Feed.isSimpleItem(t));
+    const simpleGetItems = tasks.filter(t => t.type === 'get' && Feed.isSimpleItem(t));
+
+    const doBody = doCards.length > 0
+      ? doCards.map(t => Feed.renderCard(t)).join('')
+      : '<div class="empty-state-sm">Nothing to do right now.</div>';
+
+    const getBody = getCards.length > 0
+      ? getCards.map(t => Feed.renderCard(t)).join('')
+      : '<div class="empty-state-sm">Nothing to get right now.</div>';
+
+    const shoppingBody = simpleGetItems.length > 0
+      ? '<div class="checklist">' + simpleGetItems.map(t => Feed.renderCheckItem(t, false)).join('') + '</div>'
+      : '<div class="empty-state-sm">Shopping list is empty.</div>';
+
+    list.innerHTML = [
+      Feed.renderSection('do', 'Need to Do', doBody),
+      Feed.renderSection('get', 'Need to Get', getBody),
+      Feed.renderSection('shopping', 'Shopping List', shoppingBody),
+    ].join('');
+
+    list.querySelectorAll('.feed-section-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.section;
+        Feed.collapsed[key] = !Feed.collapsed[key];
+        try { localStorage.setItem('feed_collapsed', JSON.stringify(Feed.collapsed)); } catch (e) {}
+        const section = btn.closest('.feed-section');
+        section.classList.toggle('collapsed', Feed.collapsed[key]);
+        btn.setAttribute('aria-expanded', String(!Feed.collapsed[key]));
+      });
+    });
+
+    list.querySelectorAll('.feed-section-add').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const type = btn.dataset.type;
+        if (type === 'shopping') Feed.showQuickListModal();
+        else Feed.showAddTaskModal(type);
+      });
+    });
+
+    list.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', () => {
+        Router.navigate('task-detail', card.dataset.id);
+      });
+    });
+
+    list.querySelectorAll('.check-item').forEach(row => {
+      const cb = row.querySelector('input[type="checkbox"]');
+      cb.addEventListener('change', () => {
+        if (cb.checked) Feed.startAcquireTimer(row, row.dataset.id);
+        else Feed.toggleGetItem(row.dataset.id, false);
+      });
+      const editBtn = row.querySelector('.check-edit');
+      if (editBtn) {
+        editBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          Feed.showCheckItemEditModal(row.dataset.id);
+        });
+      }
+    });
+  },
+
+  renderSection(key, label, body) {
+    const isCollapsed = !!Feed.collapsed[key];
+    const addType = key === 'shopping' ? 'shopping' : key;
+    return `
+      <div class="feed-section ${isCollapsed ? 'collapsed' : ''}" data-section="${key}">
+        <div class="feed-section-header">
+          <button type="button" class="feed-section-toggle" aria-expanded="${!isCollapsed}" data-section="${key}">
+            <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>${label.toUpperCase()}</span>
+          </button>
+          <button type="button" class="feed-section-add" data-type="${addType}">Add</button>
+        </div>
+        <div class="feed-section-body">${body}</div>
+      </div>
+    `;
+  },
 
   isSimpleItem(task) {
     return !task.description && !task.due_date && task.cost == null;
-  },
-
-  renderGetTab(list, tasks) {
-    const pending = tasks.filter(t => t.status !== 'Done');
-    const done = tasks.filter(t => t.status === 'Done');
-
-    const simpleItems = pending.filter(t => Feed.isSimpleItem(t));
-    const plannedItems = pending.filter(t => !Feed.isSimpleItem(t));
-
-    let html = '';
-
-    // Planned items first — rendered as cards
-    if (plannedItems.length > 0) {
-      html += plannedItems.map(t => Feed.renderGetCard(t)).join('');
-    }
-
-    // Simple items — checklist
-    if (simpleItems.length > 0) {
-      if (plannedItems.length > 0) {
-        html += '<div class="checklist-section-header">Shopping List</div>';
-      }
-      html += '<div class="checklist">';
-      html += simpleItems.map(t => Feed.renderCheckItem(t, false)).join('');
-      html += '</div>';
-    }
-
-    // Acquired items
-    if (done.length > 0) {
-      html += `<div class="checklist-done-header">
-        <span>${done.length} acquired</span>
-        <button class="btn btn-sm btn-secondary" onclick="Feed.showReimbursementModal()">Submit for Reimbursement</button>
-      </div>`;
-      html += '<div class="checklist">';
-      html += done.map(t => Feed.renderCheckItem(t, true)).join('');
-      html += '</div>';
-    }
-
-    list.innerHTML = html;
-
-    // Card click handlers
-    list.querySelectorAll('.card').forEach(card => {
-      card.addEventListener('click', () => {
-        Router.navigate('task-detail', card.dataset.id);
-      });
-    });
-
-    // Checkbox handlers
-    list.querySelectorAll('.check-item').forEach(row => {
-      const cb = row.querySelector('input[type="checkbox"]');
-      cb.addEventListener('change', () => {
-        if (cb.checked) {
-          Feed.startAcquireTimer(row, row.dataset.id);
-        } else {
-          Feed.toggleGetItem(row.dataset.id, false);
-        }
-      });
-      const editBtn = row.querySelector('.check-edit');
-      if (editBtn) {
-        editBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          Feed.showCheckItemEditModal(row.dataset.id);
-        });
-      }
-    });
-  },
-
-  renderAllTab(list, tasks) {
-    const cardItems = tasks.filter(t => !(t.type === 'get' && Feed.isSimpleItem(t) && t.status !== 'Done'));
-    const simpleGetItems = tasks.filter(t => t.type === 'get' && Feed.isSimpleItem(t) && t.status !== 'Done');
-
-    let html = '';
-
-    if (cardItems.length > 0) {
-      html += cardItems.map(t => Feed.renderCard(t, true)).join('');
-    }
-
-    if (simpleGetItems.length > 0) {
-      html += '<div class="checklist-section-header">Shopping List</div>';
-      html += '<div class="checklist">';
-      html += simpleGetItems.map(t => Feed.renderCheckItem(t, false)).join('');
-      html += '</div>';
-    }
-
-    list.innerHTML = html;
-
-    list.querySelectorAll('.card').forEach(card => {
-      card.addEventListener('click', () => {
-        Router.navigate('task-detail', card.dataset.id);
-      });
-    });
-
-    list.querySelectorAll('.check-item').forEach(row => {
-      const cb = row.querySelector('input[type="checkbox"]');
-      cb.addEventListener('change', () => {
-        if (cb.checked) {
-          Feed.startAcquireTimer(row, row.dataset.id);
-        } else {
-          Feed.toggleGetItem(row.dataset.id, false);
-        }
-      });
-      const editBtn = row.querySelector('.check-edit');
-      if (editBtn) {
-        editBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          Feed.showCheckItemEditModal(row.dataset.id);
-        });
-      }
-    });
-  },
-
-  renderGetCard(task) {
-    const badges = [];
-    if (task.priority === 'HAVE') badges.push('<span class="badge badge-urgent">Urgent</span>');
-    if (task.priority === 'WANT') badges.push('<span class="badge badge-backlog">Backlog</span>');
-    badges.push('<span class="badge badge-open">Open</span>');
-
-    const costHtml = task.cost != null
-      ? `<span class="text-sm text-muted">${formatCurrency(task.cost)}</span>`
-      : '';
-
-    return `
-      <div class="card" data-id="${task.id}">
-        <div class="card-header">
-          <div class="card-title">${escapeHtml(task.title)}</div>
-          ${costHtml}
-        </div>
-        <div class="card-meta">${badges.join('')}</div>
-        ${task.description ? `<div class="card-body">${escapeHtml(task.description).slice(0, 120)}</div>` : ''}
-        ${task.due_date ? `<div class="card-body text-sm" style="margin-top:4px">Due ${formatDate(task.due_date)}</div>` : ''}
-      </div>
-    `;
   },
 
   renderCheckItem(task, isDone) {
@@ -440,26 +331,23 @@ const Feed = {
     Feed.load();
   },
 
-  // ---- "Need to Do" card rendering ----
-
-  renderCard(task, showType) {
+  renderCard(task) {
     const assignee = task.assigned_user?.name || 'Unassigned';
     const statusClass = task.status.toLowerCase().replace(/\s/g, '-');
     const badges = [];
 
-    if (showType) {
-      const typeLabel = task.type === 'do' ? 'Do' : 'Get';
-      badges.push(`<span class="badge badge-type-${task.type}">${typeLabel}</span>`);
-    }
-
     if (task.priority === 'HAVE') badges.push('<span class="badge badge-urgent">Urgent</span>');
     if (task.priority === 'WANT') badges.push('<span class="badge badge-backlog">Backlog</span>');
-    if (task.is_blocked_by_purchase) badges.push('<span class="badge badge-blocked">Needs Supply</span>');
-    badges.push(`<span class="badge badge-${statusClass}">${escapeHtml(task.status)}</span>`);
+    if (task.is_blocked_by_purchase && task.type !== 'get') badges.push('<span class="badge badge-blocked">Needs Supply</span>');
+    if (task.status !== 'Open') {
+      badges.push(`<span class="badge badge-${statusClass}">${escapeHtml(task.status)}</span>`);
+    }
 
     const costHtml = task.cost != null
       ? `<span class="text-sm text-muted">${formatCurrency(task.cost)}</span>`
       : '';
+
+    const metaHtml = badges.length > 0 ? `<div class="card-meta">${badges.join('')}</div>` : '';
 
     return `
       <div class="card" data-id="${task.id}">
@@ -467,7 +355,7 @@ const Feed = {
           <div class="card-title">${escapeHtml(task.title)}</div>
           ${costHtml}
         </div>
-        <div class="card-meta">${badges.join('')}</div>
+        ${metaHtml}
         ${task.description ? `<div class="card-body">${escapeHtml(task.description).slice(0, 100)}</div>` : ''}
         <div class="card-body text-sm" style="margin-top:4px">
           ${escapeHtml(assignee)}${task.due_date ? ' &middot; Due ' + formatDate(task.due_date) : ''}
@@ -594,20 +482,17 @@ const Feed = {
     hideModal();
     if (error) { toast('Failed to add items'); return; }
     toast(`${lines.length} item${lines.length > 1 ? 's' : ''} added`);
-    Feed.type = 'get';
-    document.querySelectorAll('.feed-tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.type === 'get');
-    });
     Feed.load();
   },
 
-  showAddTaskModal() {
+  showAddTaskModal(initialType) {
     const userOpts = App.allUsers.map(u =>
       `<option value="${u.id}">${escapeHtml(u.name)}</option>`
     ).join('');
 
-    const isGet = Feed.type === 'get';
-    Feed._modalType = Feed.type;
+    const type = initialType === 'get' ? 'get' : 'do';
+    const isGet = type === 'get';
+    Feed._modalType = type;
     Feed._modalPriority = 'NORMAL';
 
     showModal(`
@@ -657,6 +542,13 @@ const Feed = {
         <label>Estimated Cost</label>
         <input type="number" id="modal-task-cost" placeholder="0.00" step="0.01">
       </div>
+      <div class="form-group" id="modal-task-blocked-group" style="display:${isGet ? 'none' : 'flex'};align-items:center;gap:10px">
+        <label class="toggle" style="margin:0">
+          <input type="checkbox" id="modal-task-blocked">
+          <span class="toggle-slider"></span>
+        </label>
+        <span style="font-size:14px">Blocked by purchase</span>
+      </div>
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
         <button class="btn btn-primary" onclick="Feed.doCreateTask()">Create</button>
@@ -671,6 +563,8 @@ const Feed = {
     Feed._modalType = btn.dataset.modalType;
     btn.closest('.priority-toggle').querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    const blockedGroup = document.getElementById('modal-task-blocked-group');
+    if (blockedGroup) blockedGroup.style.display = Feed._modalType === 'get' ? 'none' : 'flex';
   },
 
   toggleModalPriority(btn) {
@@ -698,7 +592,7 @@ const Feed = {
       type: Feed._modalType,
       due_date: document.getElementById('modal-task-due').value || null,
       cost: document.getElementById('modal-task-cost').value ? Number(document.getElementById('modal-task-cost').value) : null,
-      is_blocked_by_purchase: Feed._modalType === 'get',
+      is_blocked_by_purchase: Feed._modalType === 'get' || document.getElementById('modal-task-blocked').checked,
       created_by: App.profile?.id || null,
       assigned_to: document.getElementById('modal-task-assignee').value || null,
     };
@@ -707,10 +601,6 @@ const Feed = {
     hideModal();
     if (error) { toast('Failed to create: ' + error.message); return; }
     toast('Item created');
-    Feed.type = Feed._modalType;
-    document.querySelectorAll('.feed-tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.type === Feed.type);
-    });
     Feed.load();
   },
 
