@@ -200,7 +200,11 @@ const Inventory = {
     if (!data) return;
     const { error } = await sb.from('inventory_standards').insert(data);
     hideModal();
-    if (error) { toast('Failed to add'); return; }
+    if (error) {
+      console.error('Inventory add failed:', error);
+      toast('Failed: ' + error.message);
+      return;
+    }
     toast('Item added');
     Inventory.load();
   },
@@ -210,7 +214,11 @@ const Inventory = {
     if (!data) return;
     const { error } = await sb.from('inventory_standards').update(data).eq('id', Inventory._editId);
     hideModal();
-    if (error) { toast('Failed to save'); return; }
+    if (error) {
+      console.error('Inventory save failed:', error);
+      toast('Failed: ' + error.message);
+      return;
+    }
     toast('Item updated');
     Inventory.load();
   },

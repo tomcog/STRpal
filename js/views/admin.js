@@ -1,6 +1,11 @@
 // Admin View — user management + reimbursements
 const Admin = {
+  collapsed: {},
+
   async load() {
+    try {
+      Admin.collapsed = JSON.parse(localStorage.getItem('admin_collapsed') || '{}');
+    } catch (e) { Admin.collapsed = {}; }
     await Promise.all([
       Admin.loadReimbursements(),
       Admin.loadUsers(),
@@ -25,29 +30,69 @@ const Admin = {
     const pending = reimbs.filter(r => r.status !== 'Done');
     const paid = reimbs.filter(r => r.status === 'Done');
 
-    let html = '<h2 class="view-heading">Reimbursements</h2>';
+    let bodyHtml = '';
 
     if (pending.length > 0) {
-      html += pending.map(r => Admin.renderReimbCard(r, false)).join('');
+      bodyHtml += pending.map(r => Admin.renderReimbCard(r, false)).join('');
     }
 
     if (paid.length > 0) {
-      html += `<div class="checklist-done-header"><span>${paid.length} paid</span></div>`;
-      html += paid.map(r => Admin.renderReimbCard(r, true)).join('');
+      const paidCollapsed = !!Admin.collapsed.paid;
+      bodyHtml += `
+        <div class="feed-section ${paidCollapsed ? 'collapsed' : ''}" data-section="paid">
+          <div class="feed-section-header">
+            <button type="button" class="feed-section-toggle" aria-expanded="${!paidCollapsed}" data-section="paid">
+              <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              <span>PAID</span>
+            </button>
+          </div>
+          <div class="feed-section-body">
+            ${paid.map(r => Admin.renderReimbCard(r, true)).join('')}
+          </div>
+        </div>
+      `;
     }
 
     if (pending.length === 0 && paid.length === 0) {
-      html += '<div class="empty-state"><p>No reimbursements</p></div>';
+      bodyHtml += '<div class="empty-state-sm">No reimbursements</div>';
     }
 
-    html += '<div style="height:24px"></div>';
-    container.innerHTML = html;
+    const reimbCollapsed = !!Admin.collapsed.reimbursements;
+    container.innerHTML = `
+      <div class="feed-section ${reimbCollapsed ? 'collapsed' : ''}" data-section="reimbursements">
+        <div class="feed-section-header">
+          <button type="button" class="feed-section-toggle" aria-expanded="${!reimbCollapsed}" data-section="reimbursements">
+            <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>REIMBURSEMENTS</span>
+          </button>
+        </div>
+        <div class="feed-section-body">${bodyHtml}</div>
+      </div>
+    `;
 
-    // Attach handlers
+    // Card click handlers
     container.querySelectorAll('.reimb-card').forEach(card => {
       card.addEventListener('click', () => {
         const r = reimbs.find(x => x.id === card.dataset.id);
         if (r) Admin.showReimbDetail(r);
+      });
+    });
+
+    Admin._attachToggleHandlers(container);
+  },
+
+  _attachToggleHandlers(container) {
+    container.querySelectorAll('.feed-section-toggle').forEach(btn => {
+      if (btn.dataset.toggleBound) return;
+      btn.dataset.toggleBound = '1';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const key = btn.dataset.section;
+        Admin.collapsed[key] = !Admin.collapsed[key];
+        try { localStorage.setItem('admin_collapsed', JSON.stringify(Admin.collapsed)); } catch (e2) {}
+        const section = btn.closest('.feed-section');
+        section.classList.toggle('collapsed', Admin.collapsed[key]);
+        btn.setAttribute('aria-expanded', String(!Admin.collapsed[key]));
       });
     });
   },
@@ -134,29 +179,50 @@ const Admin = {
   // ---- Users ----
 
   async loadUsers() {
-    const list = document.getElementById('admin-user-list');
-    list.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+    const container = document.getElementById('admin-team');
+    container.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
 
     const { data: users, error } = await sb.from('users').select('*').order('name');
     if (error) {
-      list.innerHTML = '<div class="empty-state"><p>Failed to load users</p></div>';
+      container.innerHTML = '<div class="empty-state"><p>Failed to load users</p></div>';
       return;
     }
 
     App.allUsers = users || [];
 
-    if (!users || users.length === 0) {
-      list.innerHTML = '<div class="empty-state"><p>No team members yet</p></div>';
-      return;
-    }
+    const listHtml = (!users || users.length === 0)
+      ? '<div class="empty-state-sm">No team members yet</div>'
+      : `<div class="card-list">${users.map(u => Admin.renderUser(u)).join('')}</div>`;
 
-    list.innerHTML = users.map(u => Admin.renderUser(u)).join('');
+    const addBtnHtml = `<button id="add-user-btn" class="btn btn-secondary btn-block" style="margin-top:8px">+ Add Team Member</button>`;
 
-    list.querySelectorAll('.admin-card').forEach(card => {
+    const isCollapsed = !!Admin.collapsed.team;
+    container.innerHTML = `
+      <div class="feed-section ${isCollapsed ? 'collapsed' : ''}" data-section="team">
+        <div class="feed-section-header">
+          <button type="button" class="feed-section-toggle" aria-expanded="${!isCollapsed}" data-section="team">
+            <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>TEAM MANAGEMENT</span>
+          </button>
+        </div>
+        <div class="feed-section-body">
+          ${listHtml}
+          ${addBtnHtml}
+        </div>
+      </div>
+    `;
+
+    container.querySelectorAll('.admin-card').forEach(card => {
       card.addEventListener('click', () => {
         Admin.showEditModal(users.find(u => u.id === card.dataset.id));
       });
     });
+
+    container.querySelector('#add-user-btn').addEventListener('click', () => {
+      Admin.showAddModal();
+    });
+
+    Admin._attachToggleHandlers(container);
   },
 
   renderUser(u) {
@@ -264,11 +330,7 @@ const Admin = {
     Admin.loadUsers();
   },
 
-  init() {
-    document.getElementById('add-user-btn').addEventListener('click', () => {
-      Admin.showAddModal();
-    });
-  },
+  init() {},
 
   showAddModal() {
     showModal(`

@@ -41,7 +41,7 @@ const TaskDetail = {
     let badges = `<span class="badge badge-${statusClass}">${escapeHtml(t.status)}</span>`;
     if (t.priority === 'HAVE') badges += '<span class="badge badge-urgent">Urgent</span>';
     if (t.priority === 'WANT') badges += '<span class="badge badge-backlog">Backlog</span>';
-    if (t.is_blocked_by_purchase) badges += '<span class="badge badge-blocked">Needs Supply</span>';
+    if (t.is_blocked_by_purchase && t.type !== 'get') badges += '<span class="badge badge-blocked">Needs Supply</span>';
     if (t.type === 'reimbursement') badges += '<span class="badge badge-reimbursement">Reimbursement</span>';
 
     let html = `
@@ -123,25 +123,36 @@ const TaskDetail = {
       </div>`;
     }
 
-    // Shortlist options
-    if (TaskDetail.shortlistOptions.length > 0 && isFinance) {
+    // Options (both do and get tasks)
+    if (t.type !== 'reimbursement') {
       html += '<div class="detail-section">';
-      html += '<div class="detail-section-title">Product Options</div>';
-      TaskDetail.shortlistOptions.forEach(opt => {
-        const selectedClass = opt.is_selected ? 'selected' : '';
-        html += `
-          <div class="shortlist-item ${selectedClass}" data-opt-id="${opt.id}">
-            <div class="flex-between">
-              <span class="shortlist-name">${escapeHtml(opt.option_name)}</span>
-              <span class="shortlist-price">${opt.price != null ? formatCurrency(opt.price) : ''}</span>
+      html += '<div class="detail-section-title">Options</div>';
+      if (TaskDetail.shortlistOptions.length > 0) {
+        TaskDetail.shortlistOptions.forEach(opt => {
+          const selectedClass = opt.is_selected ? 'selected' : '';
+          html += `
+            <div class="shortlist-item ${selectedClass}" data-opt-id="${opt.id}">
+              ${opt.photo_url ? `<img class="shortlist-photo" src="${escapeHtml(opt.photo_url)}" alt="" loading="lazy">` : ''}
+              <div class="shortlist-content">
+                <div class="flex-between">
+                  <span class="shortlist-name">${escapeHtml(opt.option_name)}</span>
+                  <span class="shortlist-price">${opt.price != null ? formatCurrency(opt.price) : ''}</span>
+                </div>
+                ${opt.source ? `<div class="shortlist-source">${escapeHtml(opt.source)}</div>` : ''}
+                ${opt.url_or_phone ? `<div class="shortlist-link"><a href="${escapeHtml(opt.url_or_phone)}" target="_blank" rel="noopener">Visit link</a></div>` : ''}
+                ${opt.notes ? `<div class="shortlist-notes">${escapeHtml(opt.notes)}</div>` : ''}
+                <div class="shortlist-actions">
+                  ${!opt.is_selected ? `<button class="btn btn-sm btn-secondary" onclick="TaskDetail.selectOption('${opt.id}')">Select Winner</button>` : '<span class="badge badge-done">Selected</span>'}
+                  <button class="btn btn-sm btn-ghost" onclick="TaskDetail.removeOption('${opt.id}')">Remove</button>
+                </div>
+              </div>
             </div>
-            ${opt.url_or_phone ? `<div class="shortlist-link"><a href="${escapeHtml(opt.url_or_phone)}" target="_blank" rel="noopener">View Product</a></div>` : ''}
-            <div class="shortlist-actions">
-              ${!opt.is_selected ? `<button class="btn btn-sm btn-secondary" onclick="TaskDetail.selectOption('${opt.id}')">Select Winner</button>` : '<span class="badge badge-done">Selected</span>'}
-            </div>
-          </div>
-        `;
-      });
+          `;
+        });
+      } else {
+        html += '<p class="text-sm text-muted">No options yet</p>';
+      }
+      html += `<button class="btn btn-sm btn-secondary" style="margin-top:10px" onclick="TaskDetail.showAddOptionModal()">+ Add Option</button>`;
       html += '</div>';
     }
 
@@ -150,10 +161,6 @@ const TaskDetail = {
 
     if (canAssign) {
       html += `<button class="btn btn-secondary btn-block" onclick="TaskDetail.showAssignModal()">Assign</button>`;
-    }
-
-    if (isFinance && t.status === 'Researching') {
-      html += `<button class="btn btn-secondary btn-block" onclick="TaskDetail.showAddOptionModal()">+ Add Product Option</button>`;
     }
 
     if (t.is_blocked_by_purchase && (canAssign || isFinance)) {
@@ -182,8 +189,10 @@ const TaskDetail = {
       html += `<button class="btn btn-ghost btn-block" onclick="TaskDetail.showEditModal()">Edit Task</button>`;
     }
 
-    // Delete button
-    html += `<button class="btn btn-danger btn-block" onclick="TaskDetail.confirmDelete()">Delete Task</button>`;
+    // Delete button (reimbursements are archived for tax records and cannot be deleted)
+    if (t.type !== 'reimbursement') {
+      html += `<button class="btn btn-danger btn-block" onclick="TaskDetail.confirmDelete()">Delete Task</button>`;
+    }
 
     html += '</div>';
 
@@ -246,6 +255,11 @@ const TaskDetail = {
   },
 
   async doDelete() {
+    if (TaskDetail.task.type === 'reimbursement') {
+      hideModal();
+      toast('Reimbursements are kept for tax records');
+      return;
+    }
     const id = TaskDetail.task.id;
     const { error } = await sb.from('tasks').delete().eq('id', id);
     hideModal();

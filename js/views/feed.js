@@ -3,8 +3,6 @@ const Feed = {
   statusFilter: '',
   assigneeFilter: '',
   collapsed: {},
-  _undoTimer: null,
-  _undoId: null,
 
   init() {
     try {
@@ -29,8 +27,7 @@ const Feed = {
     let { data: tasks, error } = await sb.from('tasks')
       .select('*, assigned_user:users!tasks_assigned_to_fkey(name)')
       .neq('type', 'reimbursement')
-      .neq('status', 'Done')
-      .order('created_at', { ascending: false });
+      .order('title', { ascending: true });
 
     if (error) {
       list.innerHTML = '<div class="empty-state"><p>Failed to load tasks</p></div>';
@@ -38,20 +35,18 @@ const Feed = {
     }
 
     tasks = tasks || [];
-    tasks.sort((a, b) => {
-      if (a.due_date && !b.due_date) return -1;
-      if (!a.due_date && b.due_date) return 1;
-      if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
-      return 0;
-    });
+    tasks.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
 
     Feed.render(list, tasks);
   },
 
   render(list, tasks) {
-    const doCards = tasks.filter(t => t.type === 'do');
-    const getCards = tasks.filter(t => t.type === 'get' && !Feed.isSimpleItem(t));
-    const simpleGetItems = tasks.filter(t => t.type === 'get' && Feed.isSimpleItem(t));
+    const doCards = tasks.filter(t => t.type === 'do' && t.status !== 'Done');
+    const getCards = tasks.filter(t => t.type === 'get' && !Feed.isSimpleItem(t) && t.status !== 'Done');
+    const simpleGetItems = tasks.filter(t =>
+      t.type === 'get' && Feed.isSimpleItem(t) && !t.reimbursement_id
+    );
+    const hasAcquired = simpleGetItems.some(t => t.status === 'Done');
 
     const doBody = doCards.length > 0
       ? doCards.map(t => Feed.renderCard(t)).join('')
@@ -61,9 +56,15 @@ const Feed = {
       ? getCards.map(t => Feed.renderCard(t)).join('')
       : '<div class="empty-state-sm">Nothing to get right now.</div>';
 
-    const shoppingBody = simpleGetItems.length > 0
-      ? '<div class="checklist">' + simpleGetItems.map(t => Feed.renderCheckItem(t, false)).join('') + '</div>'
-      : '<div class="empty-state-sm">Shopping list is empty.</div>';
+    let shoppingBody;
+    if (simpleGetItems.length > 0) {
+      shoppingBody = '<div class="checklist">' + simpleGetItems.map(t => Feed.renderCheckItem(t, t.status === 'Done')).join('') + '</div>';
+      if (hasAcquired) {
+        shoppingBody += '<button type="button" class="btn btn-primary btn-block" style="margin-top:12px" onclick="Feed.showReimbursementModal()">Submit for Reimbursement</button>';
+      }
+    } else {
+      shoppingBody = '<div class="empty-state-sm">Shopping list is empty.</div>';
+    }
 
     list.innerHTML = [
       Feed.renderSection('do', 'Need to Do', doBody),
@@ -99,9 +100,18 @@ const Feed = {
 
     list.querySelectorAll('.check-item').forEach(row => {
       const cb = row.querySelector('input[type="checkbox"]');
-      cb.addEventListener('change', () => {
-        if (cb.checked) Feed.startAcquireTimer(row, row.dataset.id);
-        else Feed.toggleGetItem(row.dataset.id, false);
+      cb.addEventListener('change', async () => {
+        const id = row.dataset.id;
+        const nextChecked = cb.checked;
+        row.classList.toggle('checked', nextChecked);
+        const { error } = await sb.from('tasks')
+          .update({ status: nextChecked ? 'Done' : 'Open', updated_at: new Date().toISOString() })
+          .eq('id', id);
+        if (error) {
+          row.classList.toggle('checked', !nextChecked);
+          cb.checked = !nextChecked;
+          toast('Failed to update');
+        }
       });
       const editBtn = row.querySelector('.check-edit');
       if (editBtn) {
@@ -147,51 +157,6 @@ const Feed = {
         </button>
       </div>
     `;
-  },
-
-  startAcquireTimer(row, id) {
-    // Cancel any existing timer
-    Feed.cancelUndo();
-
-    Feed._undoId = id;
-    row.classList.add('acquiring');
-
-    // Show undo toast
-    const el = document.getElementById('toast');
-    el.innerHTML = 'Marked as acquired <button class="undo-btn" onclick="Feed.cancelUndo(true)">Undo</button>';
-    el.hidden = false;
-    el.classList.add('show');
-
-    Feed._undoTimer = setTimeout(async () => {
-      Feed._undoTimer = null;
-      Feed._undoId = null;
-      el.classList.remove('show');
-      setTimeout(() => { el.hidden = true; }, 300);
-      await sb.from('tasks')
-        .update({ status: 'Done', updated_at: new Date().toISOString() })
-        .eq('id', id);
-      Feed.load();
-    }, 3000);
-  },
-
-  cancelUndo(manual) {
-    if (Feed._undoTimer) {
-      clearTimeout(Feed._undoTimer);
-      Feed._undoTimer = null;
-    }
-    if (Feed._undoId) {
-      const row = document.querySelector(`.check-item[data-id="${Feed._undoId}"]`);
-      if (row) {
-        row.classList.remove('acquiring');
-        const cb = row.querySelector('input[type="checkbox"]');
-        if (cb) cb.checked = false;
-      }
-      Feed._undoId = null;
-    }
-    const el = document.getElementById('toast');
-    el.classList.remove('show');
-    setTimeout(() => { el.hidden = true; }, 300);
-    if (manual) toast('Undone');
   },
 
   async toggleGetItem(id, acquired) {
@@ -306,7 +271,7 @@ const Feed = {
       `Items: ${names.join(', ')}`,
     ].filter(Boolean).join('\n');
 
-    const { error } = await sb.from('tasks').insert({
+    const { data: inserted, error } = await sb.from('tasks').insert({
       title,
       description,
       receipt_image_url: receiptUrl,
@@ -316,13 +281,16 @@ const Feed = {
       type: 'reimbursement',
       created_by: who || App.profile?.id || null,
       assigned_to: who || null,
-    });
+    }).select().single();
 
-    if (error) { toast('Failed to submit'); return; }
+    if (error) { toast('Failed to submit: ' + error.message); return; }
 
-    // Remove acquired items from the list
-    for (const id of ids) {
-      await sb.from('tasks').delete().eq('id', id);
+    const { error: linkError } = await sb.from('tasks')
+      .update({ reimbursement_id: inserted.id, updated_at: new Date().toISOString() })
+      .in('id', ids);
+    if (linkError) {
+      console.error('Failed to link items to reimbursement:', linkError);
+      toast('Reimbursement saved, but items not archived');
     }
 
     Feed._reimbReceiptFile = null;

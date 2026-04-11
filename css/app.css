@@ -282,26 +282,14 @@ textarea { resize: vertical; min-height: 80px; }
   align-items: center;
   gap: 12px;
   padding: 10px 4px;
-  border-bottom: 1px solid var(--border);
   transition: opacity 0.3s;
 }
-
-.check-item:last-child { border-bottom: none; }
 
 .check-item.checked {
   opacity: 0.45;
 }
 
 .check-item.checked .check-label {
-  text-decoration: line-through;
-  color: var(--text-muted);
-}
-
-.check-item.acquiring {
-  opacity: 0.45;
-}
-
-.check-item.acquiring .check-label {
   text-decoration: line-through;
   color: var(--text-muted);
 }
@@ -360,7 +348,7 @@ textarea { resize: vertical; min-height: 80px; }
 .check-edit {
   background: none;
   border: none;
-  color: var(--text-dim);
+  color: var(--section-add);
   padding: 6px;
   cursor: pointer;
   display: flex;
@@ -370,7 +358,7 @@ textarea { resize: vertical; min-height: 80px; }
   flex-shrink: 0;
 }
 
-.check-edit:hover { color: var(--accent); background: var(--bg-input); }
+.check-edit:hover { color: var(--section-add); background: var(--bg-input); }
 
 .checklist-section-header {
   font-size: 12px;
