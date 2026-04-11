@@ -88,18 +88,35 @@
 
       <!-- Calendar View -->
       <div id="view-calendar" class="view">
-        <div id="calendar-header">
-          <button id="cal-prev" class="icon-btn">&larr;</button>
-          <h2 id="cal-month-label"></h2>
-          <button id="cal-next" class="icon-btn">&rarr;</button>
+        <div class="feed-tabs" id="calendar-tabs">
+          <button class="feed-tab active" data-cal-tab="list">List</button>
+          <button class="feed-tab" data-cal-tab="calendar">Calendar</button>
         </div>
-        <div id="calendar-grid"></div>
-        <div id="calendar-day-detail" hidden>
-          <h3 id="cal-day-label"></h3>
-          <div id="cal-day-events"></div>
-        </div>
-        <div id="turnover-banner" hidden>
-          <div id="turnover-info"></div>
+
+        <div id="calendar-list-panel"></div>
+
+        <div id="calendar-grid-panel" hidden>
+          <div id="calendar-header">
+            <button id="cal-prev" class="icon-btn">&larr;</button>
+            <h2 id="cal-month-label"></h2>
+            <button id="cal-next" class="icon-btn">&rarr;</button>
+          </div>
+          <div id="calendar-grid"></div>
+          <div id="calendar-legend" class="cal-legend">
+            <div class="cal-legend-item"><span class="cal-legend-swatch" style="background:#1D4E5C"></span>Upcoming</div>
+            <div class="cal-legend-item"><span class="cal-legend-swatch" style="background:#1DD1A1"></span>Current</div>
+            <div class="cal-legend-item"><span class="cal-legend-swatch" style="background:#F49867"></span>Owner</div>
+            <div class="cal-legend-item"><span class="cal-legend-swatch" style="background:#E8C948"></span>Service</div>
+            <div class="cal-legend-item"><span class="cal-legend-swatch" style="background:#EE5A7B"></span>Quick turnover</div>
+            <div class="cal-legend-item"><span class="cal-legend-swatch" style="background:#AEAEB2"></span>Past</div>
+          </div>
+          <div id="calendar-day-detail" hidden>
+            <h3 id="cal-day-label"></h3>
+            <div id="cal-day-events"></div>
+          </div>
+          <div id="turnover-banner" hidden>
+            <div id="turnover-info"></div>
+          </div>
         </div>
       </div>
 
