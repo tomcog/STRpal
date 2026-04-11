@@ -61,7 +61,7 @@ const Report = {
           photo_url: photoUrl,
           priority: Report.priority,
           status: 'Open',
-          type: 'task',
+          type: 'do',
           created_by: App.profile?.id || null,
         });
 

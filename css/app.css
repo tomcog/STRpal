@@ -178,13 +178,10 @@ textarea { resize: vertical; min-height: 80px; }
   display: flex;
   align-items: stretch;
   justify-content: space-around;
-  padding-bottom: var(--safe-bottom);
-  height: calc(var(--nav-height) + var(--safe-bottom));
-  min-height: calc(var(--nav-height) + var(--safe-bottom));
+  flex-shrink: 0;
+  height: var(--nav-height);
   background: var(--bg-card);
   border-top: 1px solid var(--border);
-  position: sticky;
-  bottom: 0;
   z-index: 100;
 }
 
@@ -212,6 +209,7 @@ textarea { resize: vertical; min-height: 80px; }
 /* ===== MAIN CONTENT ===== */
 #main-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -791,44 +789,141 @@ textarea { resize: vertical; min-height: 80px; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
+  cursor: pointer;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .inv-card + .inv-card { margin-top: 8px; }
 
-.inv-photo {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  flex-shrink: 0;
-  background: var(--bg-input);
-}
-
-.inv-info { flex: 1; min-width: 0; }
-
 .inv-name {
   font-weight: 600;
   font-size: 15px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.inv-status-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.inv-status-btn {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.inv-status-btn.active.stocked {
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.inv-status-btn.active.low {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.inv-status-btn.active.empty {
+  background: var(--urgent-bg);
+  color: var(--urgent);
+  border-color: var(--urgent);
+}
+
+.inv-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 12px;
 }
 
 .inv-status {
-  font-size: 12px;
   font-weight: 700;
-  margin-top: 2px;
 }
 
 .inv-status.stocked { color: var(--success); }
 .inv-status.low { color: var(--warning); }
 .inv-status.empty { color: var(--urgent); }
 
+.inv-last {
+  color: var(--text-muted);
+}
+
 .inv-action {
   flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+}
+
+.inv-delete-btn {
+  color: var(--urgent);
+}
+
+.inv-delete-btn:active {
+  background: var(--urgent-bg);
+}
+
+.last-stocked-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.last-stocked-row input[type="date"] {
+  flex: 1;
+}
+
+.last-stocked-row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+input.date-icon-left {
+  position: relative;
+  padding-left: 38px;
+}
+
+input.date-icon-left::-webkit-calendar-picker-indicator {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.inv-link-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.inv-link-row input[type="text"] {
+  flex: 0 0 30%;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.inv-link-row input[type="url"] {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.inv-link-row .icon-btn {
+  flex-shrink: 0;
+  font-size: 20px;
 }
 
 .fab {

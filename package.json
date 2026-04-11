@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "STR Crew Operations PWA",
   "scripts": {
-    "dev": "npx serve . -p 3000"
+    "dev": "npx serve . -p 5179"
   },
   "license": "ISC"
 }
