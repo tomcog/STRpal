@@ -65,7 +65,7 @@ const Router = {
     const titles = {
       feed: 'Tasks',
       report: 'Report',
-      calendar: 'Calendar',
+      calendar: 'Stays',
       inventory: 'Inventory',
       admin: 'Admin',
       profile: 'Profile',

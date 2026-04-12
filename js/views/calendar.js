@@ -468,6 +468,22 @@ const Calendar = {
       }
     }
 
+    // Next stay (first future check-in after this date, excluding same-day check-ins already listed above)
+    const nextStay = Calendar.allRentals
+      .filter(r => r.start_date > dateStr)
+      .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+
+    if (nextStay) {
+      const nextName = App.isCrewOnly() ? 'Guest' : (nextStay.guest_name || 'Guest');
+      eventsHtml += `
+        <div class="cal-event cal-event-next">
+          <div class="cal-event-type" style="color:var(--text-muted)">Next stay</div>
+          <strong>${escapeHtml(nextName)}</strong>
+          <div class="text-sm text-muted">Starts ${formatDate(nextStay.start_date)}</div>
+        </div>
+      `;
+    }
+
     eventsEl.innerHTML = eventsHtml;
     detail.hidden = false;
   },

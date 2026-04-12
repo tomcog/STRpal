@@ -529,6 +529,30 @@ textarea { resize: vertical; min-height: 80px; }
 .badge-blocked { background: var(--urgent-bg); color: var(--urgent); }
 .badge-reimbursement { background: #f0ebff; color: #6b4eff; }
 
+.reimb-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border-radius: 5px;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.10);
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.reimb-chip-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.reimb-chip-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--success);
+}
+
 .card-body {
   font-size: 13px;
   color: var(--text-muted);
@@ -765,9 +789,9 @@ textarea { resize: vertical; min-height: 80px; }
 
 .stay-card {
   background: var(--bg-card);
-  border-radius: 8px;
+  border-radius: 5px;
   overflow: hidden;
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.16);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.10);
   cursor: pointer;
   margin-bottom: 12px;
 }
@@ -993,6 +1017,12 @@ textarea { resize: vertical; min-height: 80px; }
 .cal-event-type.checkin { color: var(--success); }
 .cal-event-type.turnover { color: var(--warning); }
 
+.cal-event-next {
+  margin-top: 12px;
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+
 #turnover-banner {
   margin-top: 16px;
   padding: 14px;
@@ -1011,10 +1041,10 @@ textarea { resize: vertical; min-height: 80px; }
 /* ===== INVENTORY ===== */
 .inv-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 5px;
   padding: 14px;
   cursor: pointer;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.10);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1334,9 +1364,9 @@ input.date-icon-left::-webkit-calendar-picker-indicator {
 /* ===== ADMIN ===== */
 .admin-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 5px;
   padding: 14px;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.10);
 }
 
 .admin-card + .admin-card { margin-top: 8px; }

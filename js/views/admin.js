@@ -30,34 +30,17 @@ const Admin = {
     const pending = reimbs.filter(r => r.status !== 'Done');
     const paid = reimbs.filter(r => r.status === 'Done');
 
-    let bodyHtml = '';
+    const pendingBody = pending.length > 0
+      ? pending.map(r => Admin.renderReimbCard(r, false)).join('')
+      : '<div class="empty-state-sm">No pending reimbursements</div>';
 
-    if (pending.length > 0) {
-      bodyHtml += pending.map(r => Admin.renderReimbCard(r, false)).join('');
-    }
-
-    if (paid.length > 0) {
-      const paidCollapsed = !!Admin.collapsed.paid;
-      bodyHtml += `
-        <div class="feed-section ${paidCollapsed ? 'collapsed' : ''}" data-section="paid">
-          <div class="feed-section-header">
-            <button type="button" class="feed-section-toggle" aria-expanded="${!paidCollapsed}" data-section="paid">
-              <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-              <span>PAID</span>
-            </button>
-          </div>
-          <div class="feed-section-body">
-            ${paid.map(r => Admin.renderReimbCard(r, true)).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    if (pending.length === 0 && paid.length === 0) {
-      bodyHtml += '<div class="empty-state-sm">No reimbursements</div>';
-    }
+    const completedBody = paid.length > 0
+      ? paid.map(r => Admin.renderReimbCard(r, true)).join('')
+      : '<div class="empty-state-sm">No completed reimbursements</div>';
 
     const reimbCollapsed = !!Admin.collapsed.reimbursements;
+    const completedCollapsed = !!Admin.collapsed.completed;
+
     container.innerHTML = `
       <div class="feed-section ${reimbCollapsed ? 'collapsed' : ''}" data-section="reimbursements">
         <div class="feed-section-header">
@@ -66,7 +49,16 @@ const Admin = {
             <span>REIMBURSEMENTS</span>
           </button>
         </div>
-        <div class="feed-section-body">${bodyHtml}</div>
+        <div class="feed-section-body">${pendingBody}</div>
+      </div>
+      <div class="feed-section ${completedCollapsed ? 'collapsed' : ''}" data-section="completed">
+        <div class="feed-section-header">
+          <button type="button" class="feed-section-toggle" aria-expanded="${!completedCollapsed}" data-section="completed">
+            <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>COMPLETED</span>
+          </button>
+        </div>
+        <div class="feed-section-body">${completedBody}</div>
       </div>
     `;
 
@@ -98,58 +90,91 @@ const Admin = {
   },
 
   renderReimbCard(r, isPaid) {
+    if (isPaid) {
+      const paidDate = r.updated_at ? formatDate(r.updated_at.split('T')[0]) : '';
+      return `
+        <div class="reimb-chip reimb-card" data-id="${r.id}">
+          <span class="reimb-chip-label">${paidDate ? escapeHtml(paidDate) + ' — ' : ''}Reimbursement</span>
+          <span class="reimb-chip-amount">${formatCurrency(r.cost)}</span>
+        </div>
+      `;
+    }
+
     const who = r.creator?.name || 'Unknown';
     const date = formatDate(r.created_at?.split('T')[0]);
 
     return `
-      <div class="card reimb-card ${isPaid ? 'reimb-paid' : ''}" data-id="${r.id}" style="margin-bottom:8px">
+      <div class="card reimb-card" data-id="${r.id}" style="margin-bottom:8px">
         <div class="card-header">
-          <div class="card-title">${escapeHtml(r.title)}</div>
-          <span style="font-weight:700;color:${isPaid ? 'var(--success)' : 'var(--text)'}">${formatCurrency(r.cost)}</span>
+          <div class="card-title">Reimbursement</div>
+          <span style="font-weight:700;color:var(--text)">${formatCurrency(r.cost)}</span>
         </div>
         <div class="card-meta">
-          ${isPaid
-            ? '<span class="badge badge-done">Paid</span>'
-            : '<span class="badge badge-to-pay">To Pay</span>'}
+          <span class="badge badge-to-pay">To Pay</span>
         </div>
         <div class="card-body text-sm" style="margin-top:4px">
-          ${escapeHtml(who)} &middot; ${date}
+          ${escapeHtml(who)} &middot; Submitted ${date}
         </div>
         ${r.receipt_image_url ? '<div class="text-sm text-muted" style="margin-top:4px">Receipt attached</div>' : ''}
       </div>
     `;
   },
 
+  parseReimbItems(description) {
+    if (!description) return [];
+    const match = description.match(/Items:\s*(.+)/);
+    if (!match) return [];
+    return match[1].split(',').map(s => s.trim()).filter(Boolean);
+  },
+
   showReimbDetail(r) {
     const who = r.creator?.name || 'Unknown';
     const isPaid = r.status === 'Done';
+    const items = Admin.parseReimbItems(r.description);
+    const purchasedAt = r.description?.match(/Purchased at:\s*(.+)/)?.[1]?.trim();
 
-    let html = `
-      <h3 class="modal-title">${escapeHtml(r.title)}</h3>
-      <div class="detail-field">
-        <span class="detail-field-label">Amount</span>
-        <span class="detail-field-value">${formatCurrency(r.cost)}</span>
-      </div>
-      <div class="detail-field">
-        <span class="detail-field-label">Submitted by</span>
-        <span class="detail-field-value">${escapeHtml(who)}</span>
-      </div>
-      <div class="detail-field">
-        <span class="detail-field-label">Date</span>
-        <span class="detail-field-value">${formatDate(r.created_at?.split('T')[0])}</span>
-      </div>
-      <div class="detail-field">
-        <span class="detail-field-label">Status</span>
-        <span class="detail-field-value" style="color:${isPaid ? 'var(--success)' : 'var(--warning)'}">${isPaid ? 'Paid' : 'To Pay'}</span>
-      </div>
-    `;
+    let html = `<h3 class="modal-title">Reimbursement</h3>`;
 
-    if (r.description) {
-      html += `<div style="margin-top:12px;font-size:14px;color:var(--text-muted);line-height:1.5;white-space:pre-wrap">${escapeHtml(r.description)}</div>`;
+    html += `<div class="detail-field">
+      <span class="detail-field-label">Amount</span>
+      <span class="detail-field-value" style="font-weight:700">${formatCurrency(r.cost)}</span>
+    </div>`;
+
+    if (items.length > 0) {
+      html += `<div style="margin-top:12px">
+        <div class="detail-section-title">Items</div>
+        <ul style="margin:0;padding-left:20px;font-size:14px;color:var(--text);line-height:1.8">
+          ${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
+        </ul>
+      </div>`;
+    }
+
+    if (purchasedAt) {
+      html += `<div class="detail-field" style="margin-top:12px">
+        <span class="detail-field-label">Purchased at</span>
+        <span class="detail-field-value">${escapeHtml(purchasedAt)}</span>
+      </div>`;
+    }
+
+    html += `<div class="detail-field">
+      <span class="detail-field-label">Submitted by</span>
+      <span class="detail-field-value">${escapeHtml(who)}</span>
+    </div>`;
+
+    html += `<div class="detail-field">
+      <span class="detail-field-label">Submitted</span>
+      <span class="detail-field-value">${formatDate(r.created_at?.split('T')[0])}</span>
+    </div>`;
+
+    if (isPaid && r.updated_at) {
+      html += `<div class="detail-field">
+        <span class="detail-field-label">Reimbursed</span>
+        <span class="detail-field-value" style="color:var(--success)">${formatDate(r.updated_at.split('T')[0])}</span>
+      </div>`;
     }
 
     if (r.receipt_image_url) {
-      html += `<img src="${escapeHtml(r.receipt_image_url)}" alt="Receipt" style="width:100%;border-radius:var(--radius-sm);margin-top:12px">`;
+      html += `<img src="${escapeHtml(r.receipt_image_url)}" alt="Receipt" style="width:100%;border-radius:5px;margin-top:12px">`;
     }
 
     if (!isPaid) {

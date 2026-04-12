@@ -188,6 +188,7 @@ const Inventory = {
 
     return {
       item_name: name,
+      category: 'Supply',
       description: document.getElementById('modal-inv-desc').value.trim() || null,
       status: document.getElementById('modal-inv-status').value,
       last_stocked_at: document.getElementById('modal-inv-last-stocked').value || null,
