@@ -205,13 +205,9 @@ const Feed = {
         <label>Total cost</label>
         <input type="number" id="modal-reimb-cost" placeholder="0.00" step="0.01">
       </div>
-      <div class="photo-capture">
-        <label for="reimb-receipt-photo" class="photo-capture-label">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
-          <span>Photo of Receipt</span>
-        </label>
-        <input type="file" id="reimb-receipt-photo" accept="image/*" capture="environment" hidden>
-        <img id="reimb-receipt-preview" hidden>
+      <div class="form-group">
+        <label>Receipt photo</label>
+        <div id="reimb-receipt-picker"></div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
@@ -219,24 +215,12 @@ const Feed = {
       </div>
     `);
 
-    // Photo preview
     setTimeout(() => {
-      const input = document.getElementById('reimb-receipt-photo');
-      if (input) {
-        input.addEventListener('change', (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          Feed._reimbReceiptFile = file;
-          const preview = document.getElementById('reimb-receipt-preview');
-          preview.src = URL.createObjectURL(file);
-          preview.hidden = false;
-          input.closest('.photo-capture').querySelector('.photo-capture-label').classList.add('has-photo');
-        });
-      }
+      Feed._reimbPicker = PhotoPicker.mount('reimb-receipt-picker', { label: 'Receipt photo' });
     }, 50);
   },
 
-  _reimbReceiptFile: null,
+  _reimbPicker: null,
 
   async doSubmitReimbursement() {
     const checked = document.querySelectorAll('.reimb-check:checked');
@@ -250,9 +234,9 @@ const Feed = {
     if (!cost || Number(cost) <= 0) { toast('Enter the total cost'); return; }
 
     let receiptUrl = null;
-    if (Feed._reimbReceiptFile) {
+    if (Feed._reimbPicker) {
       try {
-        receiptUrl = await uploadPhoto('photos', Feed._reimbReceiptFile);
+        receiptUrl = await Feed._reimbPicker.resolve();
       } catch (e) {
         toast('Failed to upload receipt');
         return;
@@ -293,7 +277,6 @@ const Feed = {
       toast('Reimbursement saved, but items not archived');
     }
 
-    Feed._reimbReceiptFile = null;
     hideModal();
     toast('Reimbursement submitted');
     Feed.load();
@@ -307,6 +290,8 @@ const Feed = {
     if (task.priority === 'HAVE') badges.push('<span class="badge badge-urgent">Urgent</span>');
     if (task.priority === 'WANT') badges.push('<span class="badge badge-backlog">Backlog</span>');
     if (task.is_blocked_by_purchase && task.type !== 'get') badges.push('<span class="badge badge-blocked">Needs Supply</span>');
+    if (task.service_type === 'provider' && task.type === 'do') badges.push('<span class="badge badge-provider">Provider</span>');
+    if (task.service_type === 'self' && task.type === 'do') badges.push('<span class="badge badge-self">Self-service</span>');
     if (task.status !== 'Open') {
       badges.push(`<span class="badge badge-${statusClass}">${escapeHtml(task.status)}</span>`);
     }
@@ -462,6 +447,7 @@ const Feed = {
     const isGet = type === 'get';
     Feed._modalType = type;
     Feed._modalPriority = 'NORMAL';
+    Feed._modalService = 'self';
 
     showModal(`
       <h3 class="modal-title">New Item</h3>
@@ -475,6 +461,18 @@ const Feed = {
             Need to Get
           </button>
         </div>
+      </div>
+      <div class="form-group">
+        <label>URL</label>
+        <div style="display:flex;gap:8px">
+          <input type="url" id="modal-task-url" placeholder="https://..." style="flex:1">
+          <button type="button" class="btn btn-sm btn-secondary" id="modal-task-fetch" style="white-space:nowrap">Fetch</button>
+        </div>
+        <div id="modal-task-fetch-status" class="text-sm text-muted" style="margin-top:4px" hidden></div>
+      </div>
+      <div class="form-group">
+        <label>Photo</label>
+        <div id="modal-task-photo-picker"></div>
       </div>
       <div class="form-group">
         <label>Title</label>
@@ -510,6 +508,17 @@ const Feed = {
         <label>Estimated Cost</label>
         <input type="number" id="modal-task-cost" placeholder="0.00" step="0.01">
       </div>
+      <div class="form-group" id="modal-task-service-group" style="display:${isGet ? 'none' : 'block'}">
+        <label>Service</label>
+        <div class="priority-toggle" style="margin:0">
+          <button type="button" class="priority-btn active" data-modal-service="self" onclick="Feed.toggleModalService(this)">
+            Self-service
+          </button>
+          <button type="button" class="priority-btn" data-modal-service="provider" onclick="Feed.toggleModalService(this)">
+            Service Provider
+          </button>
+        </div>
+      </div>
       <div class="form-group" id="modal-task-blocked-group" style="display:${isGet ? 'none' : 'flex'};align-items:center;gap:10px">
         <label class="toggle" style="margin:0">
           <input type="checkbox" id="modal-task-blocked">
@@ -522,10 +531,63 @@ const Feed = {
         <button class="btn btn-primary" onclick="Feed.doCreateTask()">Create</button>
       </div>
     `);
+
+    document.getElementById('modal-task-fetch').addEventListener('click', () => {
+      Feed.fetchTaskUrl();
+    });
+
+    Feed._taskPicker = PhotoPicker.mount('modal-task-photo-picker', { label: 'Task photo' });
   },
+
+  async fetchTaskUrl() {
+    const url = document.getElementById('modal-task-url').value.trim();
+    if (!url) { toast('Enter a URL first'); return; }
+
+    const statusEl = document.getElementById('modal-task-fetch-status');
+    const fetchBtn = document.getElementById('modal-task-fetch');
+    statusEl.textContent = 'Fetching...';
+    statusEl.hidden = false;
+    fetchBtn.disabled = true;
+
+    try {
+      const resp = await fetch(SUPABASE_URL + '/functions/v1/fetch-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await resp.json();
+
+      if (data.error) {
+        statusEl.textContent = 'Could not fetch: ' + data.error;
+        return;
+      }
+
+      const titleEl = document.getElementById('modal-task-title');
+      const descEl = document.getElementById('modal-task-desc');
+      const costEl = document.getElementById('modal-task-cost');
+
+      if (data.title && !titleEl.value) titleEl.value = data.title;
+      if (data.price && !costEl.value) costEl.value = data.price;
+      if (data.description && !descEl.value) descEl.value = data.description;
+      if (data.source && !descEl.value) descEl.value = `Source: ${data.source}`;
+
+      if (data.image && Feed._taskPicker) {
+        Feed._taskPicker._setUrl(data.image);
+      }
+
+      statusEl.textContent = 'Details fetched — review and edit.';
+    } catch (err) {
+      statusEl.textContent = 'Fetch failed: ' + err.message;
+    } finally {
+      fetchBtn.disabled = false;
+    }
+  },
+
+  _fetchedPhotoUrl: null,
 
   _modalType: 'do',
   _modalPriority: 'HAVE',
+  _modalService: 'self',
 
   toggleModalType(btn) {
     Feed._modalType = btn.dataset.modalType;
@@ -533,6 +595,14 @@ const Feed = {
     btn.classList.add('active');
     const blockedGroup = document.getElementById('modal-task-blocked-group');
     if (blockedGroup) blockedGroup.style.display = Feed._modalType === 'get' ? 'none' : 'flex';
+    const serviceGroup = document.getElementById('modal-task-service-group');
+    if (serviceGroup) serviceGroup.style.display = Feed._modalType === 'get' ? 'none' : 'block';
+  },
+
+  toggleModalService(btn) {
+    Feed._modalService = btn.dataset.modalService;
+    btn.closest('.priority-toggle').querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
   },
 
   toggleModalPriority(btn) {
@@ -552,15 +622,23 @@ const Feed = {
     const title = document.getElementById('modal-task-title').value.trim();
     if (!title) { toast('Enter a title'); return; }
 
+    let photoUrl = null;
+    if (Feed._taskPicker) {
+      try { photoUrl = await Feed._taskPicker.resolve(); }
+      catch (e) { toast('Failed to upload photo'); return; }
+    }
+
     const task = {
       title,
       description: document.getElementById('modal-task-desc').value.trim() || null,
+      photo_url: photoUrl,
       priority: Feed._modalPriority,
       status: 'Open',
       type: Feed._modalType,
       due_date: document.getElementById('modal-task-due').value || null,
       cost: document.getElementById('modal-task-cost').value ? Number(document.getElementById('modal-task-cost').value) : null,
       is_blocked_by_purchase: Feed._modalType === 'get' || document.getElementById('modal-task-blocked').checked,
+      service_type: Feed._modalType === 'do' ? (Feed._modalService || 'self') : 'self',
       created_by: App.profile?.id || null,
       assigned_to: document.getElementById('modal-task-assignee').value || null,
     };

@@ -42,6 +42,8 @@ const TaskDetail = {
     if (t.priority === 'HAVE') badges += '<span class="badge badge-urgent">Urgent</span>';
     if (t.priority === 'WANT') badges += '<span class="badge badge-backlog">Backlog</span>';
     if (t.is_blocked_by_purchase && t.type !== 'get') badges += '<span class="badge badge-blocked">Needs Supply</span>';
+    if (t.service_type === 'provider' && t.type === 'do') badges += '<span class="badge badge-provider">Provider</span>';
+    if (t.service_type === 'self' && t.type === 'do') badges += '<span class="badge badge-self">Self-service</span>';
     if (t.type === 'reimbursement') badges += '<span class="badge badge-reimbursement">Reimbursement</span>';
 
     let html = `
@@ -143,6 +145,7 @@ const TaskDetail = {
                 ${opt.notes ? `<div class="shortlist-notes">${escapeHtml(opt.notes)}</div>` : ''}
                 <div class="shortlist-actions">
                   ${!opt.is_selected ? `<button class="btn btn-sm btn-secondary" onclick="TaskDetail.selectOption('${opt.id}')">Select Winner</button>` : '<span class="badge badge-done">Selected</span>'}
+                  <button class="btn btn-sm btn-ghost" onclick="TaskDetail.showEditOptionModal('${opt.id}')">Edit</button>
                   <button class="btn btn-sm btn-ghost" onclick="TaskDetail.removeOption('${opt.id}')">Remove</button>
                 </div>
               </div>
@@ -298,6 +301,13 @@ const TaskDetail = {
     TaskDetail.render();
   },
 
+  async removeOption(optId) {
+    const { error } = await sb.from('shortlist_options').delete().eq('id', optId);
+    if (error) { toast('Failed to remove'); return; }
+    toast('Option removed');
+    TaskDetail.load(TaskDetail.task.id);
+  },
+
   async selectOption(optId) {
     // Deselect all, select this one
     await sb.from('shortlist_options')
@@ -344,37 +354,189 @@ const TaskDetail = {
 
   showAddOptionModal() {
     showModal(`
-      <h3 class="modal-title">Add Product Option</h3>
+      <h3 class="modal-title">Add Option</h3>
       <div class="form-group">
-        <label>Product Name</label>
+        <label>URL</label>
+        <div style="display:flex;gap:8px">
+          <input type="url" id="modal-opt-url" placeholder="https://..." style="flex:1">
+          <button type="button" class="btn btn-sm btn-secondary" id="modal-opt-fetch" style="white-space:nowrap">Fetch</button>
+        </div>
+        <div id="modal-opt-fetch-status" class="text-sm text-muted" style="margin-top:4px" hidden></div>
+      </div>
+      <div class="form-group">
+        <label>Title</label>
         <input type="text" id="modal-opt-name" placeholder="e.g. Dyson V15">
       </div>
       <div class="form-group">
-        <label>Price</label>
+        <label>Source</label>
+        <input type="text" id="modal-opt-source" placeholder="e.g. Amazon, Home Depot">
+      </div>
+      <div class="form-group">
+        <label>Cost</label>
         <input type="number" id="modal-opt-price" placeholder="0.00" step="0.01">
       </div>
       <div class="form-group">
-        <label>URL or Contact</label>
-        <input type="url" id="modal-opt-url" placeholder="https://...">
+        <label>Photo</label>
+        <div id="modal-opt-photo-picker"></div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="modal-opt-notes" rows="2" placeholder="Any details..."></textarea>
       </div>
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
         <button class="btn btn-primary" onclick="TaskDetail.doAddOption()">Add</button>
       </div>
     `);
+
+    document.getElementById('modal-opt-fetch').addEventListener('click', () => {
+      TaskDetail.fetchProductDetails();
+    });
+
+    TaskDetail._optPicker = PhotoPicker.mount('modal-opt-photo-picker', { label: 'Option photo' });
+  },
+
+  async fetchProductDetails() {
+    const url = document.getElementById('modal-opt-url').value.trim();
+    if (!url) { toast('Enter a URL first'); return; }
+
+    const statusEl = document.getElementById('modal-opt-fetch-status');
+    const fetchBtn = document.getElementById('modal-opt-fetch');
+    statusEl.textContent = 'Fetching product details...';
+    statusEl.hidden = false;
+    fetchBtn.disabled = true;
+
+    try {
+      const resp = await fetch(SUPABASE_URL + '/functions/v1/fetch-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await resp.json();
+
+      if (data.error) {
+        statusEl.textContent = 'Could not fetch details: ' + data.error;
+        return;
+      }
+
+      const nameEl = document.getElementById('modal-opt-name');
+      const priceEl = document.getElementById('modal-opt-price');
+      const sourceEl = document.getElementById('modal-opt-source');
+      const notesEl = document.getElementById('modal-opt-notes');
+
+      if (data.title && !nameEl.value) nameEl.value = data.title;
+      if (data.price && !priceEl.value) priceEl.value = data.price;
+      if (data.source && !sourceEl.value) sourceEl.value = data.source;
+      if (data.description && !notesEl.value) notesEl.value = data.description;
+      if (data.image && TaskDetail._optPicker) {
+        const v = TaskDetail._optPicker.getValue();
+        if (!v.file && !v.url) TaskDetail._optPicker._setUrl(data.image);
+      }
+
+      statusEl.textContent = 'Details fetched — review and edit as needed.';
+    } catch (err) {
+      statusEl.textContent = 'Fetch failed: ' + err.message;
+    } finally {
+      fetchBtn.disabled = false;
+    }
+  },
+
+  _optPicker: null,
+  _editOptId: null,
+
+  showEditOptionModal(optId) {
+    const opt = TaskDetail.shortlistOptions.find(o => o.id === optId);
+    if (!opt) return;
+    TaskDetail._editOptId = optId;
+
+    showModal(`
+      <h3 class="modal-title">Edit Option</h3>
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="modal-opt-name" value="${escapeHtml(opt.option_name || '')}">
+      </div>
+      <div class="form-group">
+        <label>URL</label>
+        <input type="url" id="modal-opt-url" placeholder="https://..." value="${escapeHtml(opt.url_or_phone || '')}">
+      </div>
+      <div class="form-group">
+        <label>Source</label>
+        <input type="text" id="modal-opt-source" value="${escapeHtml(opt.source || '')}">
+      </div>
+      <div class="form-group">
+        <label>Cost</label>
+        <input type="number" id="modal-opt-price" step="0.01" value="${opt.price ?? ''}">
+      </div>
+      <div class="form-group">
+        <label>Photo</label>
+        <div id="modal-opt-photo-picker"></div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="modal-opt-notes" rows="2">${escapeHtml(opt.notes || '')}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="TaskDetail.doSaveOption()">Save</button>
+      </div>
+    `);
+
+    TaskDetail._optPicker = PhotoPicker.mount('modal-opt-photo-picker', {
+      label: 'Option photo',
+      initialUrl: opt.photo_url || null,
+    });
+  },
+
+  async doSaveOption() {
+    const name = document.getElementById('modal-opt-name').value.trim();
+    if (!name) { toast('Enter a title'); return; }
+
+    let photoUrl = null;
+    if (TaskDetail._optPicker) {
+      try { photoUrl = await TaskDetail._optPicker.resolve(); }
+      catch (e) { toast('Failed to upload photo'); return; }
+    }
+
+    const updates = {
+      option_name: name,
+      url_or_phone: document.getElementById('modal-opt-url').value.trim() || null,
+      source: document.getElementById('modal-opt-source').value.trim() || null,
+      price: document.getElementById('modal-opt-price').value ? Number(document.getElementById('modal-opt-price').value) : null,
+      notes: document.getElementById('modal-opt-notes').value.trim() || null,
+      photo_url: photoUrl,
+    };
+
+    const { error } = await sb.from('shortlist_options').update(updates).eq('id', TaskDetail._editOptId);
+    hideModal();
+    TaskDetail._editOptId = null;
+    if (error) { toast('Failed to save: ' + error.message); return; }
+    toast('Option updated');
+    TaskDetail.load(TaskDetail.task.id);
   },
 
   async doAddOption() {
     const name = document.getElementById('modal-opt-name').value.trim();
     const price = document.getElementById('modal-opt-price').value;
     const url = document.getElementById('modal-opt-url').value.trim();
-    if (!name) { toast('Enter a product name'); return; }
+    const source = document.getElementById('modal-opt-source').value.trim();
+    const notes = document.getElementById('modal-opt-notes').value.trim();
+    if (!name) { toast('Enter a title'); return; }
+
+    let photoUrl = null;
+    if (TaskDetail._optPicker) {
+      try { photoUrl = await TaskDetail._optPicker.resolve(); }
+      catch (e) { toast('Failed to upload photo'); return; }
+    }
 
     const { error } = await sb.from('shortlist_options').insert({
       task_id: TaskDetail.task.id,
       option_name: name,
       price: price ? Number(price) : null,
       url_or_phone: url || null,
+      source: source || null,
+      photo_url: photoUrl,
+      notes: notes || null,
     });
     hideModal();
     if (error) { toast('Failed to add option'); return; }
@@ -443,6 +605,17 @@ const TaskDetail = {
         <label>Cost</label>
         <input type="number" id="modal-edit-cost" value="${t.cost ?? ''}" step="0.01">
       </div>
+      <div class="form-group" id="modal-edit-service-group" style="display:${t.type === 'get' || t.type === 'reimbursement' ? 'none' : 'block'}">
+        <label>Service</label>
+        <div class="priority-toggle" style="margin:0">
+          <button type="button" class="priority-btn ${(t.service_type || 'self') === 'self' ? 'active' : ''}" data-edit-service="self" onclick="TaskDetail.toggleEditService(this)">
+            Self-service
+          </button>
+          <button type="button" class="priority-btn ${t.service_type === 'provider' ? 'active' : ''}" data-edit-service="provider" onclick="TaskDetail.toggleEditService(this)">
+            Service Provider
+          </button>
+        </div>
+      </div>
       <div class="form-group" id="modal-edit-blocked-group" style="display:${t.type === 'get' || t.type === 'reimbursement' ? 'none' : 'flex'};align-items:center;gap:10px">
         <label class="toggle" style="margin:0">
           <input type="checkbox" id="modal-edit-blocked" ${t.is_blocked_by_purchase ? 'checked' : ''}>
@@ -456,6 +629,7 @@ const TaskDetail = {
       </div>
     `);
     TaskDetail._editType = t.type;
+    TaskDetail._editService = t.service_type || 'self';
   },
 
   toggleEditType(btn) {
@@ -464,6 +638,14 @@ const TaskDetail = {
     btn.classList.add('active');
     const blockedGroup = document.getElementById('modal-edit-blocked-group');
     if (blockedGroup) blockedGroup.style.display = TaskDetail._editType === 'get' ? 'none' : 'flex';
+    const serviceGroup = document.getElementById('modal-edit-service-group');
+    if (serviceGroup) serviceGroup.style.display = TaskDetail._editType === 'get' ? 'none' : 'block';
+  },
+
+  toggleEditService(btn) {
+    TaskDetail._editService = btn.dataset.editService;
+    btn.closest('.priority-toggle').querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
   },
 
   async doEdit() {
@@ -479,6 +661,7 @@ const TaskDetail = {
       cost: document.getElementById('modal-edit-cost').value ? Number(document.getElementById('modal-edit-cost').value) : null,
       type: newType,
       is_blocked_by_purchase: newType === 'get' ? true : (blockedEl ? blockedEl.checked : TaskDetail.task.is_blocked_by_purchase),
+      service_type: newType === 'do' ? (TaskDetail._editService || 'self') : 'self',
       updated_at: new Date().toISOString(),
     };
 

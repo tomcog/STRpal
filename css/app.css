@@ -528,6 +528,8 @@ textarea { resize: vertical; min-height: 80px; }
 .badge-type-get { background: #f0ebff; color: #6b4eff; }
 .badge-blocked { background: var(--urgent-bg); color: var(--urgent); }
 .badge-reimbursement { background: #f0ebff; color: #6b4eff; }
+.badge-provider { background: #fdecef; color: #b42342; }
+.badge-self { background: #e8f4ea; color: #2a7a3b; }
 
 .reimb-chip {
   display: flex;
@@ -752,6 +754,9 @@ textarea { resize: vertical; min-height: 80px; }
   border-radius: var(--radius-sm);
   padding: 12px;
   margin-bottom: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
 }
 
 .shortlist-item.selected {
@@ -759,9 +764,21 @@ textarea { resize: vertical; min-height: 80px; }
   background: var(--success-bg);
 }
 
+.shortlist-photo {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.shortlist-content { flex: 1; min-width: 0; }
+
 .shortlist-name { font-weight: 600; font-size: 15px; }
 .shortlist-price { color: var(--success); font-weight: 700; }
+.shortlist-source { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .shortlist-link { font-size: 13px; margin-top: 4px; }
+.shortlist-notes { font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
 .shortlist-actions { margin-top: 8px; display: flex; gap: 8px; }
 
 /* ===== CALENDAR ===== */
@@ -1065,32 +1082,32 @@ textarea { resize: vertical; min-height: 80px; }
 .inv-status-btn {
   flex: 1;
   padding: 8px 10px;
-  background: var(--bg-input);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  background: #F0F0F2;
+  border: none;
+  border-radius: 4px;
+  color: #6E6E73;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 16px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .inv-status-btn.active.stocked {
-  background: var(--success-bg);
-  color: var(--success);
-  border-color: var(--success);
+  background: #34C759;
+  color: #EDFCF2;
 }
 
 .inv-status-btn.active.low {
-  background: var(--warning-bg);
-  color: var(--warning);
-  border-color: var(--warning);
+  background: #FF9500;
+  color: #FFF8ED;
 }
 
 .inv-status-btn.active.empty {
-  background: var(--urgent-bg);
-  color: var(--urgent);
-  border-color: var(--urgent);
+  background: #FF3B30;
+  color: #FFF2F1;
 }
 
 .inv-meta {
@@ -1488,3 +1505,61 @@ input.date-icon-left::-webkit-calendar-picker-indicator {
 .text-sm { font-size: 13px; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 .gap-8 { gap: 8px; }
+
+/* Photo picker */
+.photo-picker { display: block; }
+.pp-dropzone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  border: 2px dashed var(--border, #d1d1d6);
+  border-radius: 8px;
+  background: var(--bg-input, #f5f5f7);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+.pp-dropzone:hover,
+.pp-dropzone:focus { border-color: var(--accent, #0a84ff); outline: none; }
+.pp-dropzone.pp-dragging { border-color: var(--accent, #0a84ff); background: #e8f0fe; }
+.pp-preview { width: 100%; max-height: 240px; object-fit: cover; display: block; }
+.pp-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted, #6e6e73);
+  padding: 20px;
+  text-align: center;
+}
+.pp-placeholder-text { display: flex; flex-direction: column; font-size: 13px; line-height: 1.3; }
+.pp-placeholder-text strong { color: var(--text, #1c1c1e); font-weight: 600; }
+.pp-clear {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pp-url-row { margin-top: 8px; }
+.pp-url {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #d1d1d6);
+  border-radius: 5px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+}

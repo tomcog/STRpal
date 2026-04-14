@@ -65,14 +65,7 @@
       <div id="view-report" class="view">
         <h2 class="view-heading">Report an Issue</h2>
         <form id="report-form">
-          <div class="photo-capture">
-            <label for="report-photo" class="photo-capture-label">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              <span>Take Photo</span>
-            </label>
-            <input type="file" id="report-photo" accept="image/*" capture="environment" hidden>
-            <img id="report-photo-preview" hidden>
-          </div>
+          <div id="report-photo-picker"></div>
           <textarea id="report-note" placeholder="What's the problem? (optional)" rows="3"></textarea>
           <div class="priority-toggle">
             <button type="button" class="priority-btn active" data-priority="HAVE">
@@ -130,14 +123,7 @@
       <div id="view-reimburse" class="view">
         <h2 class="view-heading">Submit Expense</h2>
         <form id="reimburse-form">
-          <div class="photo-capture">
-            <label for="receipt-photo" class="photo-capture-label">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
-              <span>Photo of Receipt</span>
-            </label>
-            <input type="file" id="receipt-photo" accept="image/*" capture="environment" hidden>
-            <img id="receipt-photo-preview" hidden>
-          </div>
+          <div id="receipt-photo-picker"></div>
           <input type="text" id="reimburse-title" placeholder="What was purchased?" required>
           <input type="number" id="reimburse-cost" placeholder="Amount ($)" step="0.01" min="0" required>
           <button type="submit" class="btn btn-primary btn-block">Submit for Reimbursement</button>
@@ -214,6 +200,7 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="js/photo-picker.js"></script>
   <script src="js/router.js"></script>
   <script src="js/views/feed.js"></script>
   <script src="js/views/task-detail.js"></script>

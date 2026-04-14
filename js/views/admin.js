@@ -57,6 +57,7 @@ const Admin = {
             <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             <span>COMPLETED</span>
           </button>
+          ${paid.length > 0 ? '<button type="button" class="feed-section-add" id="export-reimb-btn">Export</button>' : ''}
         </div>
         <div class="feed-section-body">${completedBody}</div>
       </div>
@@ -70,7 +71,66 @@ const Admin = {
       });
     });
 
+    // Export button
+    const exportBtn = container.querySelector('#export-reimb-btn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        Admin.exportReimbursements(paid);
+      });
+    }
+
     Admin._attachToggleHandlers(container);
+  },
+
+  exportReimbursements(paid) {
+    const lines = ['REIMBURSEMENT REPORT', ''];
+    let total = 0;
+
+    const sorted = [...paid].sort((a, b) =>
+      (a.updated_at || a.created_at || '').localeCompare(b.updated_at || b.created_at || '')
+    );
+
+    sorted.forEach(r => {
+      const paidDate = r.updated_at ? r.updated_at.split('T')[0] : 'Unknown';
+      const submittedDate = r.created_at ? r.created_at.split('T')[0] : 'Unknown';
+      const who = r.creator?.name || 'Unknown';
+      const items = Admin.parseReimbItems(r.description);
+      const amount = Number(r.cost) || 0;
+      total += amount;
+
+      lines.push(`Date paid: ${paidDate}`);
+      lines.push(`Submitted: ${submittedDate} by ${who}`);
+      lines.push(`Amount: $${amount.toFixed(2)}`);
+      if (items.length > 0) {
+        lines.push('Items:');
+        items.forEach(i => lines.push(`  - ${i}`));
+      }
+      lines.push('');
+    });
+
+    lines.push('---');
+    lines.push(`Total: $${total.toFixed(2)} (${sorted.length} reimbursement${sorted.length !== 1 ? 's' : ''})`);
+
+    const text = lines.join('\n');
+
+    if (navigator.share) {
+      navigator.share({ title: 'Reimbursement Report', text }).catch(() => {
+        Admin._downloadReport(text);
+      });
+    } else {
+      Admin._downloadReport(text);
+    }
+  },
+
+  _downloadReport(text) {
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'reimbursement-report.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   },
 
   _attachToggleHandlers(container) {

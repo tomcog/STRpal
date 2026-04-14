@@ -145,9 +145,11 @@ const Inventory = {
     if (!container) return;
     container.innerHTML = Inventory._editLinks.map((l, i) => `
       <div class="inv-link-row">
-        <input type="text" placeholder="Label" value="${escapeHtml(l.label || '')}" data-link-i="${i}" data-link-field="label">
         <input type="url" placeholder="https://..." value="${escapeHtml(l.url || '')}" data-link-i="${i}" data-link-field="url">
         <button type="button" class="icon-btn" aria-label="Remove" onclick="Inventory.removeLinkRow(${i})">&times;</button>
+      </div>
+      <div class="inv-link-row" style="margin-top:2px">
+        <input type="text" placeholder="Label (optional)" value="${escapeHtml(l.label || '')}" data-link-i="${i}" data-link-field="label" style="flex:1">
       </div>
     `).join('');
     container.querySelectorAll('input[data-link-i]').forEach(input => {

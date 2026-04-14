@@ -1,27 +1,15 @@
 // Reimbursement View
 const Reimburse = {
-  photoFile: null,
+  picker: null,
 
   reset() {
-    Reimburse.photoFile = null;
+    if (Reimburse.picker) Reimburse.picker.clear();
     const form = document.getElementById('reimburse-form');
     if (form) form.reset();
-    const preview = document.getElementById('receipt-photo-preview');
-    if (preview) { preview.hidden = true; preview.src = ''; }
-    const label = document.querySelector('#view-reimburse .photo-capture-label');
-    if (label) label.classList.remove('has-photo');
   },
 
   init() {
-    document.getElementById('receipt-photo').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      Reimburse.photoFile = file;
-      const preview = document.getElementById('receipt-photo-preview');
-      preview.src = URL.createObjectURL(file);
-      preview.hidden = false;
-      document.querySelector('#view-reimburse .photo-capture-label').classList.add('has-photo');
-    });
+    Reimburse.picker = PhotoPicker.mount('receipt-photo-picker', { label: 'Receipt photo' });
 
     document.getElementById('reimburse-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -30,10 +18,7 @@ const Reimburse = {
       submitBtn.textContent = 'Submitting...';
 
       try {
-        let receiptUrl = null;
-        if (Reimburse.photoFile) {
-          receiptUrl = await uploadPhoto('photos', Reimburse.photoFile);
-        }
+        const receiptUrl = Reimburse.picker ? await Reimburse.picker.resolve() : null;
 
         const title = document.getElementById('reimburse-title').value.trim();
         const cost = Number(document.getElementById('reimburse-cost').value);
