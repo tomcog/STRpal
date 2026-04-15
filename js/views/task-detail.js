@@ -1,8 +1,8 @@
 // Task Detail View
 const TaskDetail = {
   task: null,
-  shortlistOptions: [],
   links: [],
+  optionsList: null,
 
   async load(taskId) {
     const container = document.getElementById('task-detail-content');
@@ -20,13 +20,7 @@ const TaskDetail = {
 
     TaskDetail.task = task;
 
-    // Load shortlist options and links in parallel
-    const [{ data: options }, { data: links }] = await Promise.all([
-      sb.from('shortlist_options').select('*').eq('task_id', taskId).order('price', { ascending: true }),
-      sb.from('task_links').select('*').eq('task_id', taskId).order('created_at', { ascending: true }),
-    ]);
-
-    TaskDetail.shortlistOptions = options || [];
+    const { data: links } = await sb.from('task_links').select('*').eq('task_id', taskId).order('created_at', { ascending: true });
     TaskDetail.links = links || [];
     TaskDetail.render();
   },
@@ -104,7 +98,7 @@ const TaskDetail = {
         html += `
           <div class="task-link-row">
             <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener" class="task-link">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <i data-lucide="link" class="icon-16"></i>
               <span class="task-link-title">${escapeHtml(link.title)}</span>
             </a>
             <button class="task-link-delete" onclick="TaskDetail.removeLink('${link.id}')" aria-label="Remove">&times;</button>
@@ -125,38 +119,9 @@ const TaskDetail = {
       </div>`;
     }
 
-    // Options (both do and get tasks)
+    // Options (both do and get tasks) — rendered by shared OptionsList component
     if (t.type !== 'reimbursement') {
-      html += '<div class="detail-section">';
-      html += '<div class="detail-section-title">Options</div>';
-      if (TaskDetail.shortlistOptions.length > 0) {
-        TaskDetail.shortlistOptions.forEach(opt => {
-          const selectedClass = opt.is_selected ? 'selected' : '';
-          html += `
-            <div class="shortlist-item ${selectedClass}" data-opt-id="${opt.id}">
-              ${opt.photo_url ? `<img class="shortlist-photo" src="${escapeHtml(opt.photo_url)}" alt="" loading="lazy">` : ''}
-              <div class="shortlist-content">
-                <div class="flex-between">
-                  <span class="shortlist-name">${escapeHtml(opt.option_name)}</span>
-                  <span class="shortlist-price">${opt.price != null ? formatCurrency(opt.price) : ''}</span>
-                </div>
-                ${opt.source ? `<div class="shortlist-source">${escapeHtml(opt.source)}</div>` : ''}
-                ${opt.url_or_phone ? `<div class="shortlist-link"><a href="${escapeHtml(opt.url_or_phone)}" target="_blank" rel="noopener">Visit link</a></div>` : ''}
-                ${opt.notes ? `<div class="shortlist-notes">${escapeHtml(opt.notes)}</div>` : ''}
-                <div class="shortlist-actions">
-                  ${!opt.is_selected ? `<button class="btn btn-sm btn-secondary" onclick="TaskDetail.selectOption('${opt.id}')">Select Winner</button>` : '<span class="badge badge-done">Selected</span>'}
-                  <button class="btn btn-sm btn-ghost" onclick="TaskDetail.showEditOptionModal('${opt.id}')">Edit</button>
-                  <button class="btn btn-sm btn-ghost" onclick="TaskDetail.removeOption('${opt.id}')">Remove</button>
-                </div>
-              </div>
-            </div>
-          `;
-        });
-      } else {
-        html += '<p class="text-sm text-muted">No options yet</p>';
-      }
-      html += `<button class="btn btn-sm btn-secondary" style="margin-top:10px" onclick="TaskDetail.showAddOptionModal()">+ Add Option</button>`;
-      html += '</div>';
+      html += '<div class="detail-section" id="task-detail-options"></div>';
     }
 
     // Actions
@@ -200,6 +165,11 @@ const TaskDetail = {
     html += '</div>';
 
     container.innerHTML = html;
+
+    const optsEl = document.getElementById('task-detail-options');
+    if (optsEl) {
+      TaskDetail.optionsList = OptionsList.mount(optsEl, { taskId: t.id });
+    }
   },
 
   showAddLinkModal() {
@@ -301,27 +271,6 @@ const TaskDetail = {
     TaskDetail.render();
   },
 
-  async removeOption(optId) {
-    const { error } = await sb.from('shortlist_options').delete().eq('id', optId);
-    if (error) { toast('Failed to remove'); return; }
-    toast('Option removed');
-    TaskDetail.load(TaskDetail.task.id);
-  },
-
-  async selectOption(optId) {
-    // Deselect all, select this one
-    await sb.from('shortlist_options')
-      .update({ is_selected: false })
-      .eq('task_id', TaskDetail.task.id);
-
-    await sb.from('shortlist_options')
-      .update({ is_selected: true })
-      .eq('id', optId);
-
-    toast('Option selected');
-    TaskDetail.load(TaskDetail.task.id);
-  },
-
   showAssignModal() {
     let options = App.allUsers.map(u =>
       `<option value="${u.id}" ${TaskDetail.task.assigned_to === u.id ? 'selected' : ''}>${escapeHtml(u.name)}</option>`
@@ -349,198 +298,6 @@ const TaskDetail = {
     hideModal();
     if (error) { toast('Failed to assign'); return; }
     toast('Task assigned');
-    TaskDetail.load(TaskDetail.task.id);
-  },
-
-  showAddOptionModal() {
-    showModal(`
-      <h3 class="modal-title">Add Option</h3>
-      <div class="form-group">
-        <label>URL</label>
-        <div style="display:flex;gap:8px">
-          <input type="url" id="modal-opt-url" placeholder="https://..." style="flex:1">
-          <button type="button" class="btn btn-sm btn-secondary" id="modal-opt-fetch" style="white-space:nowrap">Fetch</button>
-        </div>
-        <div id="modal-opt-fetch-status" class="text-sm text-muted" style="margin-top:4px" hidden></div>
-      </div>
-      <div class="form-group">
-        <label>Title</label>
-        <input type="text" id="modal-opt-name" placeholder="e.g. Dyson V15">
-      </div>
-      <div class="form-group">
-        <label>Source</label>
-        <input type="text" id="modal-opt-source" placeholder="e.g. Amazon, Home Depot">
-      </div>
-      <div class="form-group">
-        <label>Cost</label>
-        <input type="number" id="modal-opt-price" placeholder="0.00" step="0.01">
-      </div>
-      <div class="form-group">
-        <label>Photo</label>
-        <div id="modal-opt-photo-picker"></div>
-      </div>
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea id="modal-opt-notes" rows="2" placeholder="Any details..."></textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="TaskDetail.doAddOption()">Add</button>
-      </div>
-    `);
-
-    document.getElementById('modal-opt-fetch').addEventListener('click', () => {
-      TaskDetail.fetchProductDetails();
-    });
-
-    TaskDetail._optPicker = PhotoPicker.mount('modal-opt-photo-picker', { label: 'Option photo' });
-  },
-
-  async fetchProductDetails() {
-    const url = document.getElementById('modal-opt-url').value.trim();
-    if (!url) { toast('Enter a URL first'); return; }
-
-    const statusEl = document.getElementById('modal-opt-fetch-status');
-    const fetchBtn = document.getElementById('modal-opt-fetch');
-    statusEl.textContent = 'Fetching product details...';
-    statusEl.hidden = false;
-    fetchBtn.disabled = true;
-
-    try {
-      const resp = await fetch(SUPABASE_URL + '/functions/v1/fetch-product', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-
-      const data = await resp.json();
-
-      if (data.error) {
-        statusEl.textContent = 'Could not fetch details: ' + data.error;
-        return;
-      }
-
-      const nameEl = document.getElementById('modal-opt-name');
-      const priceEl = document.getElementById('modal-opt-price');
-      const sourceEl = document.getElementById('modal-opt-source');
-      const notesEl = document.getElementById('modal-opt-notes');
-
-      if (data.title && !nameEl.value) nameEl.value = data.title;
-      if (data.price && !priceEl.value) priceEl.value = data.price;
-      if (data.source && !sourceEl.value) sourceEl.value = data.source;
-      if (data.description && !notesEl.value) notesEl.value = data.description;
-      if (data.image && TaskDetail._optPicker) {
-        const v = TaskDetail._optPicker.getValue();
-        if (!v.file && !v.url) TaskDetail._optPicker._setUrl(data.image);
-      }
-
-      statusEl.textContent = 'Details fetched — review and edit as needed.';
-    } catch (err) {
-      statusEl.textContent = 'Fetch failed: ' + err.message;
-    } finally {
-      fetchBtn.disabled = false;
-    }
-  },
-
-  _optPicker: null,
-  _editOptId: null,
-
-  showEditOptionModal(optId) {
-    const opt = TaskDetail.shortlistOptions.find(o => o.id === optId);
-    if (!opt) return;
-    TaskDetail._editOptId = optId;
-
-    showModal(`
-      <h3 class="modal-title">Edit Option</h3>
-      <div class="form-group">
-        <label>Title</label>
-        <input type="text" id="modal-opt-name" value="${escapeHtml(opt.option_name || '')}">
-      </div>
-      <div class="form-group">
-        <label>URL</label>
-        <input type="url" id="modal-opt-url" placeholder="https://..." value="${escapeHtml(opt.url_or_phone || '')}">
-      </div>
-      <div class="form-group">
-        <label>Source</label>
-        <input type="text" id="modal-opt-source" value="${escapeHtml(opt.source || '')}">
-      </div>
-      <div class="form-group">
-        <label>Cost</label>
-        <input type="number" id="modal-opt-price" step="0.01" value="${opt.price ?? ''}">
-      </div>
-      <div class="form-group">
-        <label>Photo</label>
-        <div id="modal-opt-photo-picker"></div>
-      </div>
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea id="modal-opt-notes" rows="2">${escapeHtml(opt.notes || '')}</textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="TaskDetail.doSaveOption()">Save</button>
-      </div>
-    `);
-
-    TaskDetail._optPicker = PhotoPicker.mount('modal-opt-photo-picker', {
-      label: 'Option photo',
-      initialUrl: opt.photo_url || null,
-    });
-  },
-
-  async doSaveOption() {
-    const name = document.getElementById('modal-opt-name').value.trim();
-    if (!name) { toast('Enter a title'); return; }
-
-    let photoUrl = null;
-    if (TaskDetail._optPicker) {
-      try { photoUrl = await TaskDetail._optPicker.resolve(); }
-      catch (e) { toast('Failed to upload photo'); return; }
-    }
-
-    const updates = {
-      option_name: name,
-      url_or_phone: document.getElementById('modal-opt-url').value.trim() || null,
-      source: document.getElementById('modal-opt-source').value.trim() || null,
-      price: document.getElementById('modal-opt-price').value ? Number(document.getElementById('modal-opt-price').value) : null,
-      notes: document.getElementById('modal-opt-notes').value.trim() || null,
-      photo_url: photoUrl,
-    };
-
-    const { error } = await sb.from('shortlist_options').update(updates).eq('id', TaskDetail._editOptId);
-    hideModal();
-    TaskDetail._editOptId = null;
-    if (error) { toast('Failed to save: ' + error.message); return; }
-    toast('Option updated');
-    TaskDetail.load(TaskDetail.task.id);
-  },
-
-  async doAddOption() {
-    const name = document.getElementById('modal-opt-name').value.trim();
-    const price = document.getElementById('modal-opt-price').value;
-    const url = document.getElementById('modal-opt-url').value.trim();
-    const source = document.getElementById('modal-opt-source').value.trim();
-    const notes = document.getElementById('modal-opt-notes').value.trim();
-    if (!name) { toast('Enter a title'); return; }
-
-    let photoUrl = null;
-    if (TaskDetail._optPicker) {
-      try { photoUrl = await TaskDetail._optPicker.resolve(); }
-      catch (e) { toast('Failed to upload photo'); return; }
-    }
-
-    const { error } = await sb.from('shortlist_options').insert({
-      task_id: TaskDetail.task.id,
-      option_name: name,
-      price: price ? Number(price) : null,
-      url_or_phone: url || null,
-      source: source || null,
-      photo_url: photoUrl,
-      notes: notes || null,
-    });
-    hideModal();
-    if (error) { toast('Failed to add option'); return; }
-    toast('Option added');
     TaskDetail.load(TaskDetail.task.id);
   },
 

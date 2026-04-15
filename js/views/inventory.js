@@ -28,12 +28,7 @@ const Inventory = {
       });
     });
 
-    list.querySelectorAll('.inv-status-toggle button').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        Inventory.quickSetStatus(btn.dataset.id, btn.dataset.status);
-      });
-    });
+    StockStatus.bind(list, (id, status) => Inventory.quickSetStatus(id, status));
   },
 
   parseLinks(item) {
@@ -43,16 +38,10 @@ const Inventory = {
   },
 
   renderItem(item) {
-    const status = item.status || 'Stocked';
-    const opts = ['Stocked', 'Low', 'Empty'];
-    const buttons = opts.map(o =>
-      `<button class="inv-status-btn ${o.toLowerCase()} ${status === o ? 'active' : ''}" data-id="${item.id}" data-status="${o}">${o}</button>`
-    ).join('');
-
     return `
       <div class="inv-card" data-id="${item.id}">
         <div class="inv-name">${escapeHtml(item.item_name)}</div>
-        <div class="inv-status-toggle">${buttons}</div>
+        ${StockStatus.render(item)}
       </div>
     `;
   },
@@ -98,7 +87,7 @@ const Inventory = {
   _renderForm({ title, item, onSave, showDelete }) {
     const deleteBtn = showDelete
       ? `<button class="icon-btn inv-delete-btn" aria-label="Delete" onclick="Inventory.confirmDelete('${item.id}','${escapeHtml(item.item_name || '').replace(/'/g, "\\'")}')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+          <i data-lucide="trash-2" class="icon-20"></i>
         </button>`
       : '';
 
@@ -117,7 +106,7 @@ const Inventory = {
         <select id="modal-inv-status">
           <option value="Stocked" ${item.status === 'Stocked' ? 'selected' : ''}>Stocked</option>
           <option value="Low" ${item.status === 'Low' ? 'selected' : ''}>Low</option>
-          <option value="Empty" ${item.status === 'Empty' ? 'selected' : ''}>Empty</option>
+          <option value="Empty" ${item.status === 'Empty' ? 'selected' : ''}>Restock</option>
         </select>
       </div>
       <div class="form-group">

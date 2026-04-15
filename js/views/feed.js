@@ -130,7 +130,7 @@ const Feed = {
       <div class="feed-section ${isCollapsed ? 'collapsed' : ''}" data-section="${key}">
         <div class="feed-section-header">
           <button type="button" class="feed-section-toggle" aria-expanded="${!isCollapsed}" data-section="${key}">
-            <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <i data-lucide="chevron-down" class="feed-section-chevron icon-16"></i>
             <span>${label.toUpperCase()}</span>
           </button>
           <button type="button" class="feed-section-add" data-type="${addType}">Add</button>
@@ -153,7 +153,7 @@ const Feed = {
         </label>
         <span class="check-label">${escapeHtml(task.title)}</span>
         <button class="check-edit" aria-label="Edit item">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <i data-lucide="pencil" class="icon-18"></i>
         </button>
       </div>
     `;

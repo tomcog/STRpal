@@ -45,7 +45,7 @@ const Admin = {
       <div class="feed-section ${reimbCollapsed ? 'collapsed' : ''}" data-section="reimbursements">
         <div class="feed-section-header">
           <button type="button" class="feed-section-toggle" aria-expanded="${!reimbCollapsed}" data-section="reimbursements">
-            <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <i data-lucide="chevron-down" class="feed-section-chevron icon-16"></i>
             <span>REIMBURSEMENTS</span>
           </button>
         </div>
@@ -54,7 +54,7 @@ const Admin = {
       <div class="feed-section ${completedCollapsed ? 'collapsed' : ''}" data-section="completed">
         <div class="feed-section-header">
           <button type="button" class="feed-section-toggle" aria-expanded="${!completedCollapsed}" data-section="completed">
-            <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <i data-lucide="chevron-down" class="feed-section-chevron icon-16"></i>
             <span>COMPLETED</span>
           </button>
           ${paid.length > 0 ? '<button type="button" class="feed-section-add" id="export-reimb-btn">Export</button>' : ''}
@@ -286,7 +286,7 @@ const Admin = {
       <div class="feed-section ${isCollapsed ? 'collapsed' : ''}" data-section="team">
         <div class="feed-section-header">
           <button type="button" class="feed-section-toggle" aria-expanded="${!isCollapsed}" data-section="team">
-            <svg class="feed-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <i data-lucide="chevron-down" class="feed-section-chevron icon-16"></i>
             <span>TEAM MANAGEMENT</span>
           </button>
         </div>

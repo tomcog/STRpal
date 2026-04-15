@@ -1056,18 +1056,47 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 /* ===== INVENTORY ===== */
+#view-inventory {
+  background: #B5E3E9;
+  min-height: 100%;
+}
+
+.inv-add-btn {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: #2A8795;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.inv-add-btn:hover { background: #236f7b; }
+.inv-add-btn svg { flex-shrink: 0; }
+
+#inventory-list { max-width: 400px; margin: 0 auto; }
+.inv-card { max-width: 400px; }
+
 .inv-card {
   background: var(--bg-card);
   border-radius: 5px;
   padding: 14px;
   cursor: pointer;
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.10);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.inv-card + .inv-card { margin-top: 8px; }
+.inv-card + .inv-card { margin-top: 10px; }
 
 .inv-name {
   font-weight: 600;
@@ -1505,6 +1534,14 @@ input.date-icon-left::-webkit-calendar-picker-indicator {
 .text-sm { font-size: 13px; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 .gap-8 { gap: 8px; }
+
+/* Lucide icon size utilities (applied to the rendered <svg>) */
+.icon-16 { width: 16px; height: 16px; }
+.icon-18 { width: 18px; height: 18px; }
+.icon-20 { width: 20px; height: 20px; }
+.icon-22 { width: 22px; height: 22px; }
+.icon-24 { width: 24px; height: 24px; }
+[data-lucide] { display: inline-flex; }
 
 /* Photo picker */
 .photo-picker { display: block; }

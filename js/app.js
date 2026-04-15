@@ -120,5 +120,38 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// Lucide icon refresh — safe to call repeatedly.
+let _iconRefreshScheduled = false;
+function refreshIcons() {
+  if (typeof lucide === 'undefined' || !lucide.createIcons) return;
+  if (_iconRefreshScheduled) return;
+  _iconRefreshScheduled = true;
+  requestAnimationFrame(() => {
+    _iconRefreshScheduled = false;
+    lucide.createIcons();
+  });
+}
+
 // Boot
-document.addEventListener('DOMContentLoaded', () => App.init());
+document.addEventListener('DOMContentLoaded', () => {
+  refreshIcons();
+  App.init();
+
+  // Auto-convert any <i data-lucide="..."> that gets inserted anywhere in the app.
+  const root = document.body;
+  if (root) {
+    const observer = new MutationObserver((muts) => {
+      for (const m of muts) {
+        for (const n of m.addedNodes) {
+          if (n.nodeType !== 1) continue;
+          if ((n.hasAttribute && n.hasAttribute('data-lucide')) ||
+              (n.querySelector && n.querySelector('[data-lucide]'))) {
+            refreshIcons();
+            return;
+          }
+        }
+      }
+    });
+    observer.observe(root, { childList: true, subtree: true });
+  }
+});
