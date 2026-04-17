@@ -99,6 +99,7 @@ const Calendar = {
     const { data: tasks, error } = await sb.from('tasks')
       .select('id, title, due_date, status, type, cost, updated_at, assigned_user:users!tasks_assigned_to_fkey(name), vendor:vendors!tasks_vendor_id_fkey(name)')
       .not('due_date', 'is', null)
+      .neq('status', 'Done')
       .order('due_date', { ascending: true });
 
     if (error) {
@@ -116,21 +117,12 @@ const Calendar = {
     const overdue = [];
     const today = [];
     const upcoming = [];
-    const past = [];
 
     items.forEach(t => {
-      if (t.status === 'Done') {
-        // Completed items remain visible — separate "Completed" section
-        past.push(t);
-        return;
-      }
       if (t.due_date < todayStr) overdue.push(t);
       else if (t.due_date === todayStr) today.push(t);
       else upcoming.push(t);
     });
-
-    // Completed sorted most recently updated first
-    past.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
 
     let html = '';
     if (overdue.length > 0) {
@@ -144,10 +136,6 @@ const Calendar = {
     if (upcoming.length > 0) {
       html += '<div class="due-section-header">Upcoming</div>';
       html += upcoming.map(t => Calendar._renderDueRow(t)).join('');
-    }
-    if (past.length > 0) {
-      html += '<div class="due-section-header">Completed</div>';
-      html += past.map(t => Calendar._renderDueRow(t)).join('');
     }
 
     panel.innerHTML = html;
@@ -167,18 +155,15 @@ const Calendar = {
     const month = d.toLocaleDateString('en-US', { month: 'short' });
     const day = d.getDate();
     const todayStr = new Date().toISOString().split('T')[0];
-    const isOverdue = task.status !== 'Done' && task.due_date < todayStr;
-    const isDone = task.status === 'Done';
+    const isOverdue = task.due_date < todayStr;
 
     const metaParts = [kindMeta.label];
     if (task.vendor?.name) metaParts.push(task.vendor.name);
     if (task.assigned_user?.name) metaParts.push(task.assigned_user.name);
     if (task.cost != null) metaParts.push(formatCurrency(task.cost));
-    if (isDone) metaParts.push('Done');
 
     const classes = ['due-row'];
     if (isOverdue) classes.push('overdue');
-    if (isDone) classes.push('done');
 
     return `
       <div class="${classes.join(' ')}" data-id="${task.id}">
