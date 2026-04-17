@@ -9,11 +9,7 @@ const App = {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
 
-    // Load users list
-    const { data: users } = await sb.from('users').select('*');
-    App.allUsers = users || [];
-
-    // For now: grant all permissions, no auth required
+    // Default profile — so the UI is usable even if the users query hangs.
     App.profile = {
       id: null,
       name: 'Admin',
@@ -23,17 +19,24 @@ const App = {
       can_assign_tasks: true,
     };
 
-    // If there are users in DB, use the first one as default profile
-    if (App.allUsers.length > 0) {
-      App.profile = { ...App.allUsers[0] };
-      // Override permissions to full for dev
-      App.profile.is_admin = true;
-      App.profile.can_view_calendar = true;
-      App.profile.can_manage_finances = true;
-      App.profile.can_assign_tasks = true;
+    // Bind nav immediately — don't let a slow/failed Supabase query block nav.
+    Router.init();
+
+    try {
+      const { data: users } = await sb.from('users').select('*');
+      App.allUsers = users || [];
+      if (App.allUsers.length > 0) {
+        App.profile = { ...App.allUsers[0] };
+        App.profile.is_admin = true;
+        App.profile.can_view_calendar = true;
+        App.profile.can_manage_finances = true;
+        App.profile.can_assign_tasks = true;
+      }
+    } catch (e) {
+      console.error('users load failed', e);
     }
 
-    Router.init();
+    if (typeof Notifications !== 'undefined') Notifications.init();
   },
 
   can(permission) {

@@ -27,7 +27,8 @@ const Feed = {
     let { data: tasks, error } = await sb.from('tasks')
       .select('*, assigned_user:users!tasks_assigned_to_fkey(name)')
       .neq('type', 'reimbursement')
-      .order('title', { ascending: true });
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
 
     if (error) {
       list.innerHTML = '<div class="empty-state"><p>Failed to load tasks</p></div>';
@@ -35,8 +36,6 @@ const Feed = {
     }
 
     tasks = tasks || [];
-    tasks.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
-
     Feed.render(list, tasks);
   },
 
@@ -97,6 +96,8 @@ const Feed = {
         Router.navigate('task-detail', card.dataset.id);
       });
     });
+
+    Feed._initSortable(list);
 
     list.querySelectorAll('.check-item').forEach(row => {
       const cb = row.querySelector('input[type="checkbox"]');
@@ -165,6 +166,44 @@ const Feed = {
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id);
     Feed.load();
+  },
+
+  // ---- Drag-to-reorder ----
+  _sortables: [],
+
+  _initSortable(list) {
+    if (typeof Sortable === 'undefined') return;
+
+    Feed._sortables.forEach(s => { try { s.destroy(); } catch (e) {} });
+    Feed._sortables = [];
+
+    list.querySelectorAll('.feed-section[data-section="do"] .feed-section-body, .feed-section[data-section="get"] .feed-section-body').forEach(body => {
+      if (!body.querySelector('.card')) return;
+      const s = Sortable.create(body, {
+        animation: 150,
+        draggable: '.card',
+        ghostClass: 'card-drag-ghost',
+        chosenClass: 'card-drag-chosen',
+        delay: 180,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 5,
+        onEnd: () => Feed._persistOrder(body),
+      });
+      Feed._sortables.push(s);
+    });
+  },
+
+  async _persistOrder(body) {
+    const ids = Array.from(body.querySelectorAll('.card')).map(c => c.dataset.id);
+    const updates = ids.map((id, i) =>
+      sb.from('tasks').update({ sort_order: i + 1 }).eq('id', id)
+    );
+    const results = await Promise.all(updates);
+    const failed = results.find(r => r.error);
+    if (failed) {
+      toast('Failed to save new order');
+      Feed.load();
+    }
   },
 
   // ---- Reimbursement from acquired items ----

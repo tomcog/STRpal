@@ -25,6 +25,7 @@ const Router = {
   handleHash() {
     const hash = location.hash.slice(1) || 'feed';
     const [view, ...params] = hash.split('/');
+    if (view === 'reimburse') { Router.navigate('report', 'invoice'); return; }
     Router.show(view, params.join('/'));
   },
 
@@ -64,26 +65,29 @@ const Router = {
     // Update title
     const titles = {
       feed: 'Tasks',
-      report: 'Report',
-      calendar: 'Stays',
+      report: 'Submit',
+      calendar: 'Stayzzz',
       inventory: 'Inventory',
       admin: 'Admin',
       profile: 'Profile',
       'task-detail': 'Task',
-      reimburse: 'Expense',
       sms: 'Schedule',
     };
     document.getElementById('page-title').textContent = titles[viewName] || 'STRpal';
 
-    // Fire view-specific load
-    if (viewName === 'feed') Feed.load();
-    else if (viewName === 'task-detail' && param) TaskDetail.load(param);
-    else if (viewName === 'calendar') Calendar.load();
-    else if (viewName === 'inventory') Inventory.load();
-    else if (viewName === 'admin') Admin.load();
-    else if (viewName === 'profile') Profile.load();
-    else if (viewName === 'sms') SMS.load();
-    else if (viewName === 'report') Report.reset();
-    else if (viewName === 'reimburse') Reimburse.reset();
+    // Fire view-specific load (isolated so a view error can't break navigation)
+    try {
+      if (viewName === 'feed') Feed.load();
+      else if (viewName === 'task-detail' && param) TaskDetail.load(param);
+      else if (viewName === 'calendar') Calendar.load();
+      else if (viewName === 'inventory') Inventory.load();
+      else if (viewName === 'admin') Admin.load();
+      else if (viewName === 'profile') Profile.load();
+      else if (viewName === 'sms') SMS.load();
+      else if (viewName === 'report') Report.reset(param);
+    } catch (e) {
+      console.error(`view ${viewName} failed to load:`, e);
+      toast('View failed to load — check console');
+    }
   },
 };

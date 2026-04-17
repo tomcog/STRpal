@@ -27,9 +27,15 @@
     <!-- Top Bar -->
     <header id="top-bar">
       <h1 id="page-title">Tasks</h1>
-      <button id="profile-btn" class="icon-btn" aria-label="Profile">
-        <i data-lucide="user" class="icon-24"></i>
-      </button>
+      <div class="top-bar-actions">
+        <button id="notifications-btn" class="icon-btn notif-btn" aria-label="Notifications">
+          <i data-lucide="bell" class="icon-24"></i>
+          <span id="notif-badge" class="notif-badge" hidden>0</span>
+        </button>
+        <button id="profile-btn" class="icon-btn" aria-label="Profile">
+          <i data-lucide="user" class="icon-24"></i>
+        </button>
+      </div>
     </header>
 
     <!-- Main Content Area -->
@@ -61,9 +67,13 @@
         <div id="task-detail-content"></div>
       </div>
 
-      <!-- Report Issue View -->
+      <!-- Report View (Issue or Invoice) -->
       <div id="view-report" class="view">
-        <h2 class="view-heading">Report an Issue</h2>
+        <div class="feed-tabs" id="report-tabs">
+          <button class="feed-tab active" data-report-mode="issue">Issue</button>
+          <button class="feed-tab" data-report-mode="invoice">Invoice</button>
+        </div>
+
         <form id="report-form">
           <div id="report-photo-picker"></div>
           <textarea id="report-note" placeholder="What's the problem? (optional)" rows="3"></textarea>
@@ -76,6 +86,17 @@
             </button>
           </div>
           <button type="submit" class="btn btn-primary btn-block">Submit Issue</button>
+        </form>
+
+        <form id="invoice-form" hidden>
+          <div id="invoice-photo-picker"></div>
+          <select id="invoice-vendor-select">
+            <option value="">— No vendor (or enter name below) —</option>
+          </select>
+          <input type="text" id="invoice-title" placeholder="What's this for?" required>
+          <input type="number" id="invoice-amount" placeholder="Amount ($)" step="0.01" min="0" required>
+          <input type="text" id="invoice-submitter" placeholder="Submitter name (if no vendor selected)">
+          <button type="submit" class="btn btn-primary btn-block">Submit Invoice</button>
         </form>
       </div>
 
@@ -122,20 +143,10 @@
         <div id="inventory-list" class="card-list"></div>
       </div>
 
-      <!-- Reimbursement View -->
-      <div id="view-reimburse" class="view">
-        <h2 class="view-heading">Submit Expense</h2>
-        <form id="reimburse-form">
-          <div id="receipt-photo-picker"></div>
-          <input type="text" id="reimburse-title" placeholder="What was purchased?" required>
-          <input type="number" id="reimburse-cost" placeholder="Amount ($)" step="0.01" min="0" required>
-          <button type="submit" class="btn btn-primary btn-block">Submit for Reimbursement</button>
-        </form>
-      </div>
-
       <!-- Admin View -->
       <div id="view-admin" class="view">
         <div id="admin-reimbursements"></div>
+        <div id="admin-vendors"></div>
         <div id="admin-team"></div>
       </div>
 
@@ -163,13 +174,13 @@
         <i data-lucide="layout-grid" class="icon-22"></i>
         <span>Tasks</span>
       </button>
-      <button class="nav-btn" data-view="report" aria-label="Report">
-        <i data-lucide="alert-circle" class="icon-22"></i>
-        <span>Report</span>
+      <button class="nav-btn" data-view="report" aria-label="Submit">
+        <i data-lucide="send" class="icon-22"></i>
+        <span>Submit</span>
       </button>
-      <button class="nav-btn" data-view="calendar" aria-label="Stays">
+      <button class="nav-btn" data-view="calendar" aria-label="Stayzzz">
         <i data-lucide="calendar" class="icon-22"></i>
-        <span>Stays</span>
+        <span>Stayzzz</span>
       </button>
       <button class="nav-btn" data-view="inventory" aria-label="Inventory">
         <i data-lucide="package" class="icon-22"></i>
@@ -203,7 +214,10 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="js/notifications.js"></script>
   <script src="js/photo-picker.js"></script>
   <script src="js/options-list.js"></script>
   <script src="js/stock-status.js"></script>
@@ -213,7 +227,6 @@
   <script src="js/views/report.js"></script>
   <script src="js/views/calendar.js"></script>
   <script src="js/views/inventory.js"></script>
-  <script src="js/views/reimburse.js"></script>
   <script src="js/views/admin.js"></script>
   <script src="js/views/sms.js"></script>
   <script src="js/views/profile.js"></script>

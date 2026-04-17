@@ -1,9 +1,10 @@
-const CACHE_NAME = 'strpal-v2';
+const CACHE_NAME = 'strpal-v11';
 const ASSETS = [
   '/',
   '/index.html',
   '/css/app.css',
   '/js/supabase-client.js',
+  '/js/notifications.js',
   '/js/router.js',
   '/js/app.js',
   '/js/views/feed.js',
@@ -11,7 +12,6 @@ const ASSETS = [
   '/js/views/report.js',
   '/js/views/calendar.js',
   '/js/views/inventory.js',
-  '/js/views/reimburse.js',
   '/js/views/admin.js',
   '/js/views/sms.js',
   '/js/views/profile.js'

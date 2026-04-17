@@ -8,6 +8,7 @@ const Admin = {
     } catch (e) { Admin.collapsed = {}; }
     await Promise.all([
       Admin.loadReimbursements(),
+      Admin.loadVendors(),
       Admin.loadUsers(),
     ]);
   },
@@ -18,7 +19,7 @@ const Admin = {
     const container = document.getElementById('admin-reimbursements');
 
     const { data: reimbs } = await sb.from('tasks')
-      .select('*, creator:users!tasks_created_by_fkey(name)')
+      .select('*, creator:users!tasks_created_by_fkey(name), vendor:vendors!tasks_vendor_id_fkey(name)')
       .eq('type', 'reimbursement')
       .order('created_at', { ascending: false });
 
@@ -160,18 +161,22 @@ const Admin = {
       `;
     }
 
-    const who = r.creator?.name || 'Unknown';
+    const who = r.vendor?.name || r.creator?.name || 'Unknown';
     const date = formatDate(r.created_at?.split('T')[0]);
+    const badges = ['<span class="badge badge-to-pay">To Pay</span>'];
+    if (r.due_date) {
+      const today = new Date().toISOString().split('T')[0];
+      const overdue = r.due_date < today;
+      badges.push(`<span class="badge ${overdue ? 'badge-urgent' : 'badge-blocked'}">Due ${formatDate(r.due_date)}</span>`);
+    }
 
     return `
       <div class="card reimb-card" data-id="${r.id}" style="margin-bottom:8px">
         <div class="card-header">
-          <div class="card-title">Reimbursement</div>
+          <div class="card-title">${r.vendor?.name ? escapeHtml(r.vendor.name) : 'Reimbursement'}</div>
           <span style="font-weight:700;color:var(--text)">${formatCurrency(r.cost)}</span>
         </div>
-        <div class="card-meta">
-          <span class="badge badge-to-pay">To Pay</span>
-        </div>
+        <div class="card-meta">${badges.join('')}</div>
         <div class="card-body text-sm" style="margin-top:4px">
           ${escapeHtml(who)} &middot; Submitted ${date}
         </div>
@@ -216,6 +221,13 @@ const Admin = {
       </div>`;
     }
 
+    if (r.vendor?.name) {
+      html += `<div class="detail-field">
+        <span class="detail-field-label">Vendor</span>
+        <span class="detail-field-value">${escapeHtml(r.vendor.name)}</span>
+      </div>`;
+    }
+
     html += `<div class="detail-field">
       <span class="detail-field-label">Submitted by</span>
       <span class="detail-field-value">${escapeHtml(who)}</span>
@@ -225,6 +237,18 @@ const Admin = {
       <span class="detail-field-label">Submitted</span>
       <span class="detail-field-value">${formatDate(r.created_at?.split('T')[0])}</span>
     </div>`;
+
+    if (!isPaid) {
+      html += `<div class="form-group" style="margin-top:12px">
+        <label>Pay by</label>
+        <input type="date" id="modal-reimb-due" value="${escapeHtml(r.due_date || '')}">
+      </div>`;
+    } else if (r.due_date) {
+      html += `<div class="detail-field">
+        <span class="detail-field-label">Was due</span>
+        <span class="detail-field-value">${formatDate(r.due_date)}</span>
+      </div>`;
+    }
 
     if (isPaid && r.updated_at) {
       html += `<div class="detail-field">
@@ -240,7 +264,7 @@ const Admin = {
     if (!isPaid) {
       html += `
         <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="hideModal()">Close</button>
+          <button class="btn btn-ghost" onclick="Admin.saveReimbDue('${r.id}')">Save due date</button>
           <button class="btn btn-primary" onclick="Admin.markPaid('${r.id}')">Mark as Paid</button>
         </div>
       `;
@@ -251,6 +275,15 @@ const Admin = {
     showModal(html);
   },
 
+  async saveReimbDue(id) {
+    const due = document.getElementById('modal-reimb-due').value || null;
+    const { error } = await sb.from('tasks').update({ due_date: due }).eq('id', id);
+    hideModal();
+    if (error) { toast('Failed to save'); return; }
+    toast(due ? 'Due date set' : 'Due date cleared');
+    Admin.loadReimbursements();
+  },
+
   async markPaid(id) {
     const { error } = await sb.from('tasks')
       .update({ status: 'Done', updated_at: new Date().toISOString() })
@@ -259,6 +292,154 @@ const Admin = {
     if (error) { toast('Failed to update'); return; }
     toast('Marked as paid');
     Admin.loadReimbursements();
+  },
+
+  // ---- Vendors ----
+
+  _vendors: [],
+
+  async loadVendors() {
+    const container = document.getElementById('admin-vendors');
+    const { data: vendors, error } = await sb.from('vendors').select('*').order('name');
+    if (error) {
+      container.innerHTML = '<div class="empty-state-sm">Failed to load vendors</div>';
+      return;
+    }
+    Admin._vendors = vendors || [];
+
+    const listHtml = Admin._vendors.length === 0
+      ? '<div class="empty-state-sm">No vendors yet</div>'
+      : `<div class="card-list">${Admin._vendors.map(v => Admin.renderVendor(v)).join('')}</div>`;
+
+    const isCollapsed = !!Admin.collapsed.vendors;
+    container.innerHTML = `
+      <div class="feed-section ${isCollapsed ? 'collapsed' : ''}" data-section="vendors">
+        <div class="feed-section-header">
+          <button type="button" class="feed-section-toggle" aria-expanded="${!isCollapsed}" data-section="vendors">
+            <i data-lucide="chevron-down" class="feed-section-chevron icon-16"></i>
+            <span>VENDORS</span>
+          </button>
+        </div>
+        <div class="feed-section-body">
+          ${listHtml}
+          <button id="add-vendor-btn" class="btn btn-secondary btn-block" style="margin-top:8px">+ Add Vendor</button>
+        </div>
+      </div>
+    `;
+
+    container.querySelectorAll('.admin-card').forEach(card => {
+      card.addEventListener('click', () => {
+        Admin.showVendorEditModal(Admin._vendors.find(v => v.id === card.dataset.id));
+      });
+    });
+    container.querySelector('#add-vendor-btn').addEventListener('click', () => {
+      Admin.showVendorAddModal();
+    });
+
+    Admin._attachToggleHandlers(container);
+  },
+
+  renderVendor(v) {
+    const meta = [v.trade, formatPhone(v.phone_number)].filter(Boolean).join(' · ');
+    return `
+      <div class="admin-card" data-id="${v.id}">
+        <div class="admin-name">${escapeHtml(v.name)}</div>
+        ${meta ? `<div class="admin-phone">${escapeHtml(meta)}</div>` : ''}
+        ${v.notes ? `<div class="text-sm text-muted" style="margin-top:4px">${escapeHtml(v.notes)}</div>` : ''}
+      </div>
+    `;
+  },
+
+  showVendorAddModal() {
+    showModal(`
+      <h3 class="modal-title">Add Vendor</h3>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="modal-vendor-name" placeholder="Vendor / company name">
+      </div>
+      <div class="form-group">
+        <label>Trade</label>
+        <input type="text" id="modal-vendor-trade" placeholder="e.g. Plumber, Electrician">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="modal-vendor-phone" placeholder="+1 (555) 123-4567">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="modal-vendor-notes" rows="2" placeholder="Optional"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="Admin.doAddVendor()">Add</button>
+      </div>
+    `);
+  },
+
+  async doAddVendor() {
+    const name = document.getElementById('modal-vendor-name').value.trim();
+    if (!name) { toast('Name is required'); return; }
+    const { error } = await sb.from('vendors').insert({
+      name,
+      trade: document.getElementById('modal-vendor-trade').value.trim() || null,
+      phone_number: document.getElementById('modal-vendor-phone').value.trim() || null,
+      notes: document.getElementById('modal-vendor-notes').value.trim() || null,
+    });
+    hideModal();
+    if (error) { toast('Failed to add vendor'); return; }
+    toast('Vendor added');
+    Admin.loadVendors();
+  },
+
+  showVendorEditModal(v) {
+    if (!v) return;
+    showModal(`
+      <h3 class="modal-title">Edit Vendor</h3>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="modal-vendor-name" value="${escapeHtml(v.name)}">
+      </div>
+      <div class="form-group">
+        <label>Trade</label>
+        <input type="text" id="modal-vendor-trade" value="${escapeHtml(v.trade || '')}">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="modal-vendor-phone" value="${escapeHtml(v.phone_number || '')}">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="modal-vendor-notes" rows="2">${escapeHtml(v.notes || '')}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="Admin.doDeleteVendor('${v.id}')">Delete</button>
+        <button class="btn btn-primary" onclick="Admin.doSaveVendor('${v.id}')">Save</button>
+      </div>
+    `);
+  },
+
+  async doSaveVendor(id) {
+    const name = document.getElementById('modal-vendor-name').value.trim();
+    if (!name) { toast('Name is required'); return; }
+    const { error } = await sb.from('vendors').update({
+      name,
+      trade: document.getElementById('modal-vendor-trade').value.trim() || null,
+      phone_number: document.getElementById('modal-vendor-phone').value.trim() || null,
+      notes: document.getElementById('modal-vendor-notes').value.trim() || null,
+    }).eq('id', id);
+    hideModal();
+    if (error) { toast('Failed to save'); return; }
+    toast('Vendor updated');
+    Admin.loadVendors();
+  },
+
+  async doDeleteVendor(id) {
+    if (!confirm('Delete this vendor?')) return;
+    const { error } = await sb.from('vendors').delete().eq('id', id);
+    hideModal();
+    if (error) { toast('Failed to delete'); return; }
+    toast('Vendor deleted');
+    Admin.loadVendors();
   },
 
   // ---- Users ----

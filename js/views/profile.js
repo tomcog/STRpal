@@ -17,7 +17,7 @@ const Profile = {
     // Quick links
     html += `
       <div style="margin-top:24px;display:flex;flex-direction:column;gap:8px">
-        <button class="btn btn-secondary btn-block" onclick="Router.navigate('reimburse')">Submit Expense</button>
+        <button class="btn btn-secondary btn-block" onclick="Router.navigate('report', 'invoice')">Submit Invoice</button>
         <button class="btn btn-secondary btn-block" onclick="Router.navigate('sms')">Compose Schedule SMS</button>
         <button class="btn btn-secondary btn-block" onclick="Profile.showAddTaskModal()">+ Create Task</button>
       </div>
