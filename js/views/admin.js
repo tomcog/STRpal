@@ -3,9 +3,11 @@ const Admin = {
   collapsed: {},
 
   async load() {
+    const DEFAULT_COLLAPSED = { vendors: true, team: true, completed: true };
     try {
-      Admin.collapsed = JSON.parse(localStorage.getItem('admin_collapsed') || '{}');
-    } catch (e) { Admin.collapsed = {}; }
+      const stored = localStorage.getItem('admin_collapsed');
+      Admin.collapsed = stored ? JSON.parse(stored) : { ...DEFAULT_COLLAPSED };
+    } catch (e) { Admin.collapsed = { ...DEFAULT_COLLAPSED }; }
     await Promise.all([
       Admin.loadReimbursements(),
       Admin.loadVendors(),
@@ -19,7 +21,7 @@ const Admin = {
     const container = document.getElementById('admin-reimbursements');
 
     const { data: reimbs } = await sb.from('tasks')
-      .select('*, creator:users!tasks_created_by_fkey(name), vendor:vendors!tasks_vendor_id_fkey(name)')
+      .select('*, creator:users!tasks_created_by_fkey(name), vendor:vendors!tasks_vendor_id_fkey(name, payment_methods)')
       .eq('type', 'reimbursement')
       .order('created_at', { ascending: false });
 
@@ -197,6 +199,7 @@ const Admin = {
     const isPaid = r.status === 'Done';
     const items = Admin.parseReimbItems(r.description);
     const purchasedAt = r.description?.match(/Purchased at:\s*(.+)/)?.[1]?.trim();
+    const vendorMethods = Array.isArray(r.vendor?.payment_methods) ? r.vendor.payment_methods : [];
 
     let html = `<h3 class="modal-title">Reimbursement</h3>`;
 
@@ -250,6 +253,34 @@ const Admin = {
       </div>`;
     }
 
+    // Payment method — editable when unpaid, display when paid
+    if (!isPaid) {
+      if (vendorMethods.length > 0) {
+        const selectedKey = r.payment_method ? Admin._paymentMethodKey(r.payment_method) : '';
+        const opts = vendorMethods.map(m => {
+          const key = Admin._paymentMethodKey(m);
+          const selected = key === selectedKey ? 'selected' : '';
+          return `<option value="${escapeHtml(key)}" ${selected}>${escapeHtml(Admin._paymentMethodLabel(m))}</option>`;
+        }).join('');
+        html += `<div class="form-group">
+          <label>Pay with</label>
+          <select id="modal-reimb-payment">
+            <option value="">— Choose method —</option>
+            ${opts}
+          </select>
+        </div>`;
+      } else if (r.vendor?.name) {
+        html += `<div class="text-sm text-muted" style="margin-top:8px">
+          No payment methods on file for ${escapeHtml(r.vendor.name)}. Add one in the vendor settings.
+        </div>`;
+      }
+    } else if (r.payment_method) {
+      html += `<div class="detail-field">
+        <span class="detail-field-label">Paid via</span>
+        <span class="detail-field-value">${escapeHtml(Admin._paymentMethodLabel(r.payment_method))}</span>
+      </div>`;
+    }
+
     if (isPaid && r.updated_at) {
       html += `<div class="detail-field">
         <span class="detail-field-label">Reimbursed</span>
@@ -264,7 +295,7 @@ const Admin = {
     if (!isPaid) {
       html += `
         <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="Admin.saveReimbDue('${r.id}')">Save due date</button>
+          <button class="btn btn-ghost" onclick="Admin.saveReimbDue('${r.id}')">Save</button>
           <button class="btn btn-primary" onclick="Admin.markPaid('${r.id}')">Mark as Paid</button>
         </div>
       `;
@@ -272,21 +303,45 @@ const Admin = {
       html += `<div class="modal-actions"><button class="btn btn-ghost btn-block" onclick="hideModal()">Close</button></div>`;
     }
 
+    Admin._editingReimb = r;
     showModal(html);
+  },
+
+  _editingReimb: null,
+
+  _paymentMethodKey(m) {
+    if (!m) return '';
+    return `${m.type || ''}|${m.handle || ''}|${m.label || ''}`;
+  },
+
+  _resolveSelectedPaymentMethod() {
+    const sel = document.getElementById('modal-reimb-payment');
+    if (!sel || !sel.value) return null;
+    const methods = Array.isArray(Admin._editingReimb?.vendor?.payment_methods)
+      ? Admin._editingReimb.vendor.payment_methods
+      : [];
+    return methods.find(m => Admin._paymentMethodKey(m) === sel.value) || null;
   },
 
   async saveReimbDue(id) {
     const due = document.getElementById('modal-reimb-due').value || null;
-    const { error } = await sb.from('tasks').update({ due_date: due }).eq('id', id);
+    const updates = { due_date: due };
+    const method = Admin._resolveSelectedPaymentMethod();
+    if (method) updates.payment_method = method;
+    else if (document.getElementById('modal-reimb-payment')) updates.payment_method = null;
+    const { error } = await sb.from('tasks').update(updates).eq('id', id);
     hideModal();
     if (error) { toast('Failed to save'); return; }
-    toast(due ? 'Due date set' : 'Due date cleared');
+    toast('Saved');
     Admin.loadReimbursements();
   },
 
   async markPaid(id) {
+    const updates = { status: 'Done', updated_at: new Date().toISOString() };
+    const method = Admin._resolveSelectedPaymentMethod();
+    if (method) updates.payment_method = method;
     const { error } = await sb.from('tasks')
-      .update({ status: 'Done', updated_at: new Date().toISOString() })
+      .update(updates)
       .eq('id', id);
     hideModal();
     if (error) { toast('Failed to update'); return; }
@@ -341,39 +396,155 @@ const Admin = {
 
   renderVendor(v) {
     const meta = [v.trade, formatPhone(v.phone_number)].filter(Boolean).join(' · ');
+    const methods = Array.isArray(v.payment_methods) ? v.payment_methods : [];
+    const methodChips = methods.length > 0
+      ? `<div class="admin-perms" style="margin-top:4px">${methods.map(m =>
+          `<span class="perm-chip on">${escapeHtml(Admin._paymentMethodLabel(m))}</span>`
+        ).join('')}</div>`
+      : '';
     return `
       <div class="admin-card" data-id="${v.id}">
         <div class="admin-name">${escapeHtml(v.name)}</div>
         ${meta ? `<div class="admin-phone">${escapeHtml(meta)}</div>` : ''}
+        ${methodChips}
         ${v.notes ? `<div class="text-sm text-muted" style="margin-top:4px">${escapeHtml(v.notes)}</div>` : ''}
       </div>
     `;
   },
 
+  _paymentMethodLabel(m) {
+    if (!m) return '';
+    const type = Admin._paymentTypeOptions.find(t => t.value === m.type);
+    const typeLabel = type ? type.label : (m.type || '');
+    if (m.label) return `${typeLabel}: ${m.label}`;
+    if (m.handle) return `${typeLabel} ${m.handle}`;
+    return typeLabel;
+  },
+
   showVendorAddModal() {
-    showModal(`
-      <h3 class="modal-title">Add Vendor</h3>
+    Admin._editPaymentMethods = [];
+    showModal(Admin._renderVendorForm({ title: 'Add Vendor', onSave: 'Admin.doAddVendor()' }));
+    Admin._renderPaymentMethodRows();
+  },
+
+  showVendorEditModal(v) {
+    if (!v) return;
+    Admin._editPaymentMethods = Array.isArray(v.payment_methods)
+      ? v.payment_methods.map(m => ({ ...m }))
+      : [];
+    showModal(Admin._renderVendorForm({
+      title: 'Edit Vendor',
+      onSave: `Admin.doSaveVendor('${v.id}')`,
+      onDelete: `Admin.doDeleteVendor('${v.id}')`,
+      vendor: v,
+    }));
+    Admin._renderPaymentMethodRows();
+  },
+
+  _editPaymentMethods: [],
+
+  _renderVendorForm({ title, onSave, onDelete, vendor }) {
+    const v = vendor || {};
+    const deleteBtn = onDelete
+      ? `<button class="btn btn-ghost" onclick="${onDelete}">Delete</button>`
+      : '';
+    return `
+      <h3 class="modal-title">${title}</h3>
       <div class="form-group">
         <label>Name</label>
-        <input type="text" id="modal-vendor-name" placeholder="Vendor / company name">
+        <input type="text" id="modal-vendor-name" placeholder="Vendor / company name" value="${escapeHtml(v.name || '')}">
       </div>
       <div class="form-group">
         <label>Trade</label>
-        <input type="text" id="modal-vendor-trade" placeholder="e.g. Plumber, Electrician">
+        <input type="text" id="modal-vendor-trade" placeholder="e.g. Plumber, Electrician" value="${escapeHtml(v.trade || '')}">
       </div>
       <div class="form-group">
         <label>Phone</label>
-        <input type="tel" id="modal-vendor-phone" placeholder="+1 (555) 123-4567">
+        <input type="tel" id="modal-vendor-phone" placeholder="+1 (555) 123-4567" value="${escapeHtml(v.phone_number || '')}">
+      </div>
+      <div class="form-group">
+        <label>Payment Methods</label>
+        <div id="modal-vendor-payment-methods"></div>
+        <button type="button" class="btn btn-sm btn-ghost" onclick="Admin.addPaymentMethod()" style="margin-top:6px">+ Add payment method</button>
       </div>
       <div class="form-group">
         <label>Notes</label>
-        <textarea id="modal-vendor-notes" rows="2" placeholder="Optional"></textarea>
+        <textarea id="modal-vendor-notes" rows="2" placeholder="Optional">${escapeHtml(v.notes || '')}</textarea>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="Admin.doAddVendor()">Add</button>
+        ${deleteBtn}
+        <button class="btn btn-primary" onclick="${onSave}">Save</button>
       </div>
-    `);
+    `;
+  },
+
+  _paymentTypeOptions: [
+    { value: 'venmo',  label: 'Venmo',     placeholder: '@username' },
+    { value: 'zelle',  label: 'Zelle',     placeholder: 'email or phone' },
+    { value: 'paypal', label: 'PayPal',    placeholder: 'email' },
+    { value: 'bank',   label: 'Bank / ACH', placeholder: 'e.g. Chase ****1234' },
+    { value: 'check',  label: 'Check',     placeholder: 'Mail address (optional)' },
+    { value: 'cash',   label: 'Cash',      placeholder: 'Notes (optional)' },
+    { value: 'other',  label: 'Other',     placeholder: 'Details' },
+  ],
+
+  _renderPaymentMethodRows() {
+    const container = document.getElementById('modal-vendor-payment-methods');
+    if (!container) return;
+    if (Admin._editPaymentMethods.length === 0) {
+      container.innerHTML = '<div class="text-sm text-muted">No payment methods yet.</div>';
+      return;
+    }
+    const typeOpts = Admin._paymentTypeOptions;
+    container.innerHTML = Admin._editPaymentMethods.map((m, i) => {
+      const selected = typeOpts.find(t => t.value === m.type) || typeOpts[0];
+      const optsHtml = typeOpts.map(t =>
+        `<option value="${t.value}" ${m.type === t.value ? 'selected' : ''}>${t.label}</option>`
+      ).join('');
+      return `
+        <div class="pm-row" data-pm-i="${i}">
+          <select data-pm-field="type">${optsHtml}</select>
+          <input type="text" data-pm-field="handle" placeholder="${escapeHtml(selected.placeholder)}" value="${escapeHtml(m.handle || '')}">
+          <button type="button" class="icon-btn" aria-label="Remove" onclick="Admin.removePaymentMethod(${i})">&times;</button>
+          <input type="text" data-pm-field="label" placeholder="Label (optional)" value="${escapeHtml(m.label || '')}" style="grid-column:1 / -1">
+        </div>
+      `;
+    }).join('');
+    container.querySelectorAll('[data-pm-field]').forEach(input => {
+      input.addEventListener('input', (e) => Admin._syncPaymentMethod(e));
+      input.addEventListener('change', (e) => Admin._syncPaymentMethod(e));
+    });
+  },
+
+  _syncPaymentMethod(e) {
+    const row = e.target.closest('.pm-row');
+    if (!row) return;
+    const i = Number(row.dataset.pmI);
+    const field = e.target.dataset.pmField;
+    if (Admin._editPaymentMethods[i]) {
+      Admin._editPaymentMethods[i][field] = e.target.value;
+      if (field === 'type') Admin._renderPaymentMethodRows();
+    }
+  },
+
+  addPaymentMethod() {
+    Admin._editPaymentMethods.push({ type: 'venmo', handle: '', label: '' });
+    Admin._renderPaymentMethodRows();
+  },
+
+  removePaymentMethod(i) {
+    Admin._editPaymentMethods.splice(i, 1);
+    Admin._renderPaymentMethodRows();
+  },
+
+  _collectPaymentMethods() {
+    return Admin._editPaymentMethods
+      .map(m => ({
+        type: (m.type || '').trim(),
+        handle: (m.handle || '').trim(),
+        label: (m.label || '').trim(),
+      }))
+      .filter(m => m.type && (m.handle || m.type === 'check' || m.type === 'cash'));
   },
 
   async doAddVendor() {
@@ -384,38 +555,12 @@ const Admin = {
       trade: document.getElementById('modal-vendor-trade').value.trim() || null,
       phone_number: document.getElementById('modal-vendor-phone').value.trim() || null,
       notes: document.getElementById('modal-vendor-notes').value.trim() || null,
+      payment_methods: Admin._collectPaymentMethods(),
     });
     hideModal();
     if (error) { toast('Failed to add vendor'); return; }
     toast('Vendor added');
     Admin.loadVendors();
-  },
-
-  showVendorEditModal(v) {
-    if (!v) return;
-    showModal(`
-      <h3 class="modal-title">Edit Vendor</h3>
-      <div class="form-group">
-        <label>Name</label>
-        <input type="text" id="modal-vendor-name" value="${escapeHtml(v.name)}">
-      </div>
-      <div class="form-group">
-        <label>Trade</label>
-        <input type="text" id="modal-vendor-trade" value="${escapeHtml(v.trade || '')}">
-      </div>
-      <div class="form-group">
-        <label>Phone</label>
-        <input type="tel" id="modal-vendor-phone" value="${escapeHtml(v.phone_number || '')}">
-      </div>
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea id="modal-vendor-notes" rows="2">${escapeHtml(v.notes || '')}</textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="Admin.doDeleteVendor('${v.id}')">Delete</button>
-        <button class="btn btn-primary" onclick="Admin.doSaveVendor('${v.id}')">Save</button>
-      </div>
-    `);
   },
 
   async doSaveVendor(id) {
@@ -426,6 +571,7 @@ const Admin = {
       trade: document.getElementById('modal-vendor-trade').value.trim() || null,
       phone_number: document.getElementById('modal-vendor-phone').value.trim() || null,
       notes: document.getElementById('modal-vendor-notes').value.trim() || null,
+      payment_methods: Admin._collectPaymentMethods(),
     }).eq('id', id);
     hideModal();
     if (error) { toast('Failed to save'); return; }

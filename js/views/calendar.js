@@ -63,6 +63,7 @@ const Calendar = {
     Calendar.updateLabel();
     Calendar.renderList();
     Calendar.renderGrid();
+    Calendar.renderDueFeed();
     Calendar.showActiveTab();
     Calendar.hideDetail();
   },
@@ -70,8 +71,129 @@ const Calendar = {
   showActiveTab() {
     const listPanel = document.getElementById('calendar-list-panel');
     const gridPanel = document.getElementById('calendar-grid-panel');
+    const duePanel = document.getElementById('calendar-due-panel');
     listPanel.hidden = Calendar.tab !== 'list';
     gridPanel.hidden = Calendar.tab !== 'calendar';
+    if (duePanel) duePanel.hidden = Calendar.tab !== 'due';
+  },
+
+  // ---- Due dates feed (iCal) ----
+
+  DUE_KIND: {
+    reimbursement: { label: 'Reimbursement', dot: 'due-kind-reimbursement' },
+    project:       { label: 'Project',       dot: 'due-kind-project' },
+    purchase:      { label: 'Purchase',      dot: 'due-kind-purchase' },
+  },
+
+  _dueKindFor(task) {
+    if (task.type === 'reimbursement') return 'reimbursement';
+    if (task.type === 'get') return 'purchase';
+    return 'project';
+  },
+
+  async renderDueFeed() {
+    const panel = document.getElementById('calendar-due-panel');
+    if (!panel) return;
+    panel.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+    const { data: tasks, error } = await sb.from('tasks')
+      .select('id, title, due_date, status, type, cost, updated_at, assigned_user:users!tasks_assigned_to_fkey(name), vendor:vendors!tasks_vendor_id_fkey(name)')
+      .not('due_date', 'is', null)
+      .order('due_date', { ascending: true });
+
+    if (error) {
+      panel.innerHTML = '<div class="empty-state"><p>Failed to load due dates</p></div>';
+      return;
+    }
+
+    const items = tasks || [];
+    if (items.length === 0) {
+      panel.innerHTML = '<div class="empty-state"><p>No items with due dates yet.</p><p class="text-sm text-muted">Set a due date on a project, purchase, or reimbursement to see it here.</p></div>';
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const overdue = [];
+    const today = [];
+    const upcoming = [];
+    const past = [];
+
+    items.forEach(t => {
+      if (t.status === 'Done') {
+        // Completed items remain visible — separate "Completed" section
+        past.push(t);
+        return;
+      }
+      if (t.due_date < todayStr) overdue.push(t);
+      else if (t.due_date === todayStr) today.push(t);
+      else upcoming.push(t);
+    });
+
+    // Completed sorted most recently updated first
+    past.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+
+    let html = '';
+    if (overdue.length > 0) {
+      html += '<div class="due-section-header overdue">Overdue</div>';
+      html += overdue.map(t => Calendar._renderDueRow(t)).join('');
+    }
+    if (today.length > 0) {
+      html += '<div class="due-section-header">Today</div>';
+      html += today.map(t => Calendar._renderDueRow(t)).join('');
+    }
+    if (upcoming.length > 0) {
+      html += '<div class="due-section-header">Upcoming</div>';
+      html += upcoming.map(t => Calendar._renderDueRow(t)).join('');
+    }
+    if (past.length > 0) {
+      html += '<div class="due-section-header">Completed</div>';
+      html += past.map(t => Calendar._renderDueRow(t)).join('');
+    }
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.due-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const id = row.dataset.id;
+        if (id) Router.navigate('task-detail', id);
+      });
+    });
+  },
+
+  _renderDueRow(task) {
+    const kind = Calendar._dueKindFor(task);
+    const kindMeta = Calendar.DUE_KIND[kind];
+    const d = new Date(task.due_date + 'T12:00:00');
+    const month = d.toLocaleDateString('en-US', { month: 'short' });
+    const day = d.getDate();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isOverdue = task.status !== 'Done' && task.due_date < todayStr;
+    const isDone = task.status === 'Done';
+
+    const metaParts = [kindMeta.label];
+    if (task.vendor?.name) metaParts.push(task.vendor.name);
+    if (task.assigned_user?.name) metaParts.push(task.assigned_user.name);
+    if (task.cost != null) metaParts.push(formatCurrency(task.cost));
+    if (isDone) metaParts.push('Done');
+
+    const classes = ['due-row'];
+    if (isOverdue) classes.push('overdue');
+    if (isDone) classes.push('done');
+
+    return `
+      <div class="${classes.join(' ')}" data-id="${task.id}">
+        <div class="due-date-col">
+          <div class="due-date-month">${escapeHtml(month)}</div>
+          <div class="due-date-day">${day}</div>
+        </div>
+        <div class="due-body">
+          <div class="due-title">
+            <span class="due-kind-dot ${kindMeta.dot}"></span>${escapeHtml(task.title)}
+          </div>
+          <div class="due-meta">${escapeHtml(metaParts.join(' · '))}</div>
+        </div>
+      </div>
+    `;
   },
 
   // ---- List view ----

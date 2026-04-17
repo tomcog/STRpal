@@ -28,7 +28,13 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-html { height: 100%; }
+html {
+  height: 100%;
+  touch-action: pan-y;
+  -ms-touch-action: pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 
 body {
   height: 100%;
@@ -38,6 +44,11 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  touch-action: pan-y;
+  -ms-touch-action: pan-y;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 input, textarea, select, button { font-family: inherit; font-size: inherit; }
@@ -1655,3 +1666,101 @@ input.date-icon-left::-webkit-calendar-picker-indicator {
   background: #fff;
   box-sizing: border-box;
 }
+
+/* Payment method rows (vendor editor) */
+.pm-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 32px;
+  gap: 6px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.pm-row select,
+.pm-row input {
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+.pm-row .icon-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* Due Dates (iCal) feed */
+.due-feed { padding: 0 0 24px; }
+.due-section-header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 16px 4px 8px;
+}
+.due-section-header.overdue { color: var(--urgent); }
+.due-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.due-row.done { opacity: 0.6; }
+.due-row.done .due-title { text-decoration: line-through; }
+.due-row.overdue { border-left: 3px solid var(--urgent); }
+.due-date-col {
+  flex: 0 0 52px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  padding-right: 10px;
+}
+.due-date-month {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.due-date-day {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-top: 2px;
+}
+.due-body { flex: 1; min-width: 0; }
+.due-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.due-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.due-kind-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.due-kind-reimbursement { background: #F49867; }
+.due-kind-project { background: #1D4E5C; }
+.due-kind-purchase { background: #E8C948; }

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#f5f5f7">
@@ -103,11 +103,14 @@
       <!-- Calendar View -->
       <div id="view-calendar" class="view">
         <div class="feed-tabs" id="calendar-tabs">
-          <button class="feed-tab active" data-cal-tab="list">List</button>
-          <button class="feed-tab" data-cal-tab="calendar">Calendar</button>
+          <button class="feed-tab active" data-cal-tab="list">Stays</button>
+          <button class="feed-tab" data-cal-tab="calendar">Month</button>
+          <button class="feed-tab" data-cal-tab="due">Due Dates</button>
         </div>
 
         <div id="calendar-list-panel"></div>
+
+        <div id="calendar-due-panel" class="due-feed" hidden></div>
 
         <div id="calendar-grid-panel" hidden>
           <div id="calendar-header">

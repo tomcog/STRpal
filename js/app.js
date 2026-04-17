@@ -135,6 +135,18 @@ function refreshIcons() {
   });
 }
 
+// Block pinch and double-tap zoom (iOS Safari ignores user-scalable=no since iOS 10)
+document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+let _lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - _lastTouchEnd <= 300) e.preventDefault();
+  _lastTouchEnd = now;
+}, { passive: false });
+
 // Boot
 document.addEventListener('DOMContentLoaded', () => {
   refreshIcons();
