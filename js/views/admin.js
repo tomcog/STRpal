@@ -155,9 +155,10 @@ const Admin = {
   renderReimbCard(r, isPaid) {
     if (isPaid) {
       const paidDate = r.updated_at ? formatDate(r.updated_at.split('T')[0]) : '';
+      const paidTo = r.vendor?.name || r.creator?.name || 'Payment';
       return `
         <div class="reimb-chip reimb-card" data-id="${r.id}">
-          <span class="reimb-chip-label">${paidDate ? escapeHtml(paidDate) + ' — ' : ''}Payment</span>
+          <span class="reimb-chip-label">${paidDate ? escapeHtml(paidDate) + ' — ' : ''}${escapeHtml(paidTo)}</span>
           <span class="reimb-chip-amount">${formatCurrency(r.cost)}</span>
         </div>
       `;
