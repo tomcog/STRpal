@@ -289,7 +289,12 @@ const Admin = {
     }
 
     if (r.receipt_image_url) {
-      html += `<img src="${escapeHtml(r.receipt_image_url)}" alt="Receipt" style="width:100%;border-radius:5px;margin-top:12px">`;
+      html += isPdfUrl(r.receipt_image_url)
+        ? `<a class="detail-pdf" href="${escapeHtml(r.receipt_image_url)}" target="_blank" rel="noopener" style="margin-top:12px">
+            <i data-lucide="file-text" class="icon-20"></i>
+            <span>View Receipt PDF</span>
+          </a>`
+        : `<img src="${escapeHtml(r.receipt_image_url)}" alt="Receipt" style="width:100%;border-radius:5px;margin-top:12px">`;
     }
 
     if (!isPaid) {

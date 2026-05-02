@@ -45,7 +45,9 @@
           const selectedClass = opt.is_selected ? 'selected' : '';
           html += `
             <div class="shortlist-item ${selectedClass}" data-opt-id="${opt.id}">
-              ${opt.photo_url ? `<img class="shortlist-photo" src="${escapeHtml(opt.photo_url)}" alt="" loading="lazy">` : ''}
+              ${opt.photo_url ? (isPdfUrl(opt.photo_url)
+                ? `<a class="shortlist-pdf card-pdf" href="${escapeHtml(opt.photo_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><i data-lucide="file-text" class="icon-18"></i><span>PDF</span></a>`
+                : `<img class="shortlist-photo" src="${escapeHtml(opt.photo_url)}" alt="" loading="lazy">`) : ''}
               <div class="shortlist-content">
                 <div class="flex-between">
                   <span class="shortlist-name">${escapeHtml(opt.option_name)}</span>

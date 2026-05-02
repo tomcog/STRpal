@@ -47,7 +47,14 @@ const TaskDetail = {
     `;
 
     if (t.photo_url) {
-      html += `<img class="detail-photo" src="${escapeHtml(t.photo_url)}" alt="Task photo">`;
+      if (isPdfUrl(t.photo_url)) {
+        html += `<a class="detail-pdf" href="${escapeHtml(t.photo_url)}" target="_blank" rel="noopener">
+          <i data-lucide="file-text" class="icon-20"></i>
+          <span>View PDF</span>
+        </a>`;
+      } else {
+        html += `<img class="detail-photo" src="${escapeHtml(t.photo_url)}" alt="Task photo">`;
+      }
     }
 
     if (t.description) {
@@ -113,9 +120,15 @@ const TaskDetail = {
 
     // Receipt image (for reimbursements)
     if (t.receipt_image_url && isFinance) {
+      const receiptInner = isPdfUrl(t.receipt_image_url)
+        ? `<a class="detail-pdf" href="${escapeHtml(t.receipt_image_url)}" target="_blank" rel="noopener">
+            <i data-lucide="file-text" class="icon-20"></i>
+            <span>View Receipt PDF</span>
+          </a>`
+        : `<img class="detail-photo" src="${escapeHtml(t.receipt_image_url)}" alt="Receipt">`;
       html += `<div class="detail-section">
         <div class="detail-section-title">Receipt</div>
-        <img class="detail-photo" src="${escapeHtml(t.receipt_image_url)}" alt="Receipt">
+        ${receiptInner}
       </div>`;
     }
 

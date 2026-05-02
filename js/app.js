@@ -123,6 +123,11 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function isPdfUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  return /\.pdf(\?.*)?$/i.test(url.trim());
+}
+
 // Lucide icon refresh — safe to call repeatedly.
 let _iconRefreshScheduled = false;
 function refreshIcons() {

@@ -352,7 +352,9 @@ const Feed = {
         <div class="card-body text-sm" style="margin-top:4px">
           ${escapeHtml(assignee)}${task.due_date ? ' &middot; Due ' + formatDate(task.due_date) : ''}
         </div>
-        ${task.photo_url ? `<img class="card-photo" src="${escapeHtml(task.photo_url)}" alt="" loading="lazy">` : ''}
+        ${task.photo_url ? (isPdfUrl(task.photo_url)
+          ? `<a class="card-pdf" href="${escapeHtml(task.photo_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><i data-lucide="file-text" class="icon-18"></i><span>PDF attached</span></a>`
+          : `<img class="card-photo" src="${escapeHtml(task.photo_url)}" alt="" loading="lazy">`) : ''}
       </div>
     `;
   },
@@ -488,6 +490,23 @@ const Feed = {
     Feed._modalPriority = 'NORMAL';
     Feed._modalService = 'self';
 
+    const mediaBlockHtml = `
+      <div id="modal-task-media-block">
+        <div class="form-group">
+          <label>URL</label>
+          <div style="display:flex;gap:8px">
+            <input type="url" id="modal-task-url" placeholder="https://..." style="flex:1">
+            <button type="button" class="btn btn-sm btn-secondary" id="modal-task-fetch" style="white-space:nowrap">Fetch</button>
+          </div>
+          <div id="modal-task-fetch-status" class="text-sm text-muted" style="margin-top:4px" hidden></div>
+        </div>
+        <div class="form-group">
+          <label>Photo or PDF</label>
+          <div id="modal-task-photo-picker"></div>
+        </div>
+      </div>
+    `;
+
     showModal(`
       <h3 class="modal-title">New Item</h3>
       <div class="form-group">
@@ -501,18 +520,7 @@ const Feed = {
           </button>
         </div>
       </div>
-      <div class="form-group">
-        <label>URL</label>
-        <div style="display:flex;gap:8px">
-          <input type="url" id="modal-task-url" placeholder="https://..." style="flex:1">
-          <button type="button" class="btn btn-sm btn-secondary" id="modal-task-fetch" style="white-space:nowrap">Fetch</button>
-        </div>
-        <div id="modal-task-fetch-status" class="text-sm text-muted" style="margin-top:4px" hidden></div>
-      </div>
-      <div class="form-group">
-        <label>Photo</label>
-        <div id="modal-task-photo-picker"></div>
-      </div>
+      <div id="modal-media-top-anchor">${isGet ? mediaBlockHtml : ''}</div>
       <div class="form-group">
         <label>Title</label>
         <input type="text" id="modal-task-title" placeholder="${isGet ? 'What needs to be bought?' : 'What needs to be done?'}">
@@ -565,6 +573,7 @@ const Feed = {
         </label>
         <span style="font-size:14px">Blocked by purchase</span>
       </div>
+      <div id="modal-media-bottom-anchor">${!isGet ? mediaBlockHtml : ''}</div>
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
         <button class="btn btn-primary" onclick="Feed.doCreateTask()">Create</button>
@@ -575,7 +584,7 @@ const Feed = {
       Feed.fetchTaskUrl();
     });
 
-    Feed._taskPicker = PhotoPicker.mount('modal-task-photo-picker', { label: 'Task photo' });
+    Feed._taskPicker = PhotoPicker.mount('modal-task-photo-picker', { label: 'Task photo or PDF', acceptPdf: true });
   },
 
   async fetchTaskUrl() {
@@ -636,6 +645,14 @@ const Feed = {
     if (blockedGroup) blockedGroup.style.display = Feed._modalType === 'get' ? 'none' : 'flex';
     const serviceGroup = document.getElementById('modal-task-service-group');
     if (serviceGroup) serviceGroup.style.display = Feed._modalType === 'get' ? 'none' : 'block';
+
+    const mediaBlock = document.getElementById('modal-task-media-block');
+    const topAnchor = document.getElementById('modal-media-top-anchor');
+    const bottomAnchor = document.getElementById('modal-media-bottom-anchor');
+    if (mediaBlock && topAnchor && bottomAnchor) {
+      const target = Feed._modalType === 'get' ? topAnchor : bottomAnchor;
+      if (mediaBlock.parentElement !== target) target.appendChild(mediaBlock);
+    }
   },
 
   toggleModalService(btn) {
