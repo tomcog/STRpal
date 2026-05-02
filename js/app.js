@@ -158,14 +158,16 @@ document.addEventListener('DOMContentLoaded', () => {
   App.init();
 
   // Auto-convert any <i data-lucide="..."> that gets inserted anywhere in the app.
+  // Match <i data-lucide> only — Lucide preserves data-lucide on the generated <svg>,
+  // so a broader selector causes the observer to re-fire on its own output (infinite loop).
   const root = document.body;
   if (root) {
     const observer = new MutationObserver((muts) => {
       for (const m of muts) {
         for (const n of m.addedNodes) {
           if (n.nodeType !== 1) continue;
-          if ((n.hasAttribute && n.hasAttribute('data-lucide')) ||
-              (n.querySelector && n.querySelector('[data-lucide]'))) {
+          if ((n.tagName === 'I' && n.hasAttribute('data-lucide')) ||
+              (n.querySelector && n.querySelector('i[data-lucide]'))) {
             refreshIcons();
             return;
           }

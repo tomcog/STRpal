@@ -1,10 +1,13 @@
-const CACHE_NAME = 'strpal-v13';
+const CACHE_NAME = 'strpal-v14';
 const ASSETS = [
   '/',
   '/index.html',
   '/css/app.css',
   '/js/supabase-client.js',
   '/js/notifications.js',
+  '/js/photo-picker.js',
+  '/js/options-list.js',
+  '/js/stock-status.js',
   '/js/router.js',
   '/js/app.js',
   '/js/views/feed.js',
