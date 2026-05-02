@@ -49,7 +49,7 @@ const Admin = {
         <div class="feed-section-header">
           <button type="button" class="feed-section-toggle" aria-expanded="${!reimbCollapsed}" data-section="reimbursements">
             <i data-lucide="chevron-down" class="feed-section-chevron icon-16"></i>
-            <span>PAYMENTS</span>
+            <span>PENDING PAYMENTS</span>
           </button>
         </div>
         <div class="feed-section-body">${pendingBody}</div>
@@ -501,7 +501,7 @@ const Admin = {
   },
 
   renderVendor(v) {
-    const meta = [v.trade, formatPhone(v.phone_number)].filter(Boolean).join(' · ');
+    const meta = [v.trade, v.contact_name, formatPhone(v.phone_number)].filter(Boolean).join(' · ');
     const methods = Array.isArray(v.payment_methods) ? v.payment_methods : [];
     const methodChips = methods.length > 0
       ? `<div class="admin-perms" style="margin-top:4px">${methods.map(m =>
@@ -559,6 +559,10 @@ const Admin = {
       <div class="form-group">
         <label>Name</label>
         <input type="text" id="modal-vendor-name" placeholder="Vendor / company name" value="${escapeHtml(v.name || '')}">
+      </div>
+      <div class="form-group">
+        <label>Contact name <span class="text-muted" style="font-weight:400">(optional)</span></label>
+        <input type="text" id="modal-vendor-contact" placeholder="Person to reach out to" value="${escapeHtml(v.contact_name || '')}">
       </div>
       <div class="form-group">
         <label>Trade</label>
@@ -658,6 +662,7 @@ const Admin = {
     if (!name) { toast('Name is required'); return; }
     const { error } = await sb.from('vendors').insert({
       name,
+      contact_name: document.getElementById('modal-vendor-contact').value.trim() || null,
       trade: document.getElementById('modal-vendor-trade').value.trim() || null,
       phone_number: document.getElementById('modal-vendor-phone').value.trim() || null,
       notes: document.getElementById('modal-vendor-notes').value.trim() || null,
@@ -674,6 +679,7 @@ const Admin = {
     if (!name) { toast('Name is required'); return; }
     const { error } = await sb.from('vendors').update({
       name,
+      contact_name: document.getElementById('modal-vendor-contact').value.trim() || null,
       trade: document.getElementById('modal-vendor-trade').value.trim() || null,
       phone_number: document.getElementById('modal-vendor-phone').value.trim() || null,
       notes: document.getElementById('modal-vendor-notes').value.trim() || null,
