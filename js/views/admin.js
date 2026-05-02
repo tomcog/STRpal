@@ -195,13 +195,22 @@ const Admin = {
   },
 
   showReimbDetail(r) {
+    Admin._editingReimb = r;
+    if (r.status === 'Done') Admin._renderPaidReimbModal(r);
+    else Admin._renderEditableReimbModal(r);
+  },
+
+  _renderPaidReimbModal(r) {
     const who = r.creator?.name || 'Unknown';
-    const isPaid = r.status === 'Done';
     const items = Admin.parseReimbItems(r.description);
     const purchasedAt = r.description?.match(/Purchased at:\s*(.+)/)?.[1]?.trim();
-    const vendorMethods = Array.isArray(r.vendor?.payment_methods) ? r.vendor.payment_methods : [];
 
     let html = `<h3 class="modal-title">Reimbursement</h3>`;
+
+    html += `<div class="detail-field">
+      <span class="detail-field-label">For</span>
+      <span class="detail-field-value">${escapeHtml(r.title || '')}</span>
+    </div>`;
 
     html += `<div class="detail-field">
       <span class="detail-field-label">Amount</span>
@@ -241,47 +250,21 @@ const Admin = {
       <span class="detail-field-value">${formatDate(r.created_at?.split('T')[0])}</span>
     </div>`;
 
-    if (!isPaid) {
-      html += `<div class="form-group" style="margin-top:12px">
-        <label>Pay by</label>
-        <input type="date" id="modal-reimb-due" value="${escapeHtml(r.due_date || '')}">
-      </div>`;
-    } else if (r.due_date) {
+    if (r.due_date) {
       html += `<div class="detail-field">
         <span class="detail-field-label">Was due</span>
         <span class="detail-field-value">${formatDate(r.due_date)}</span>
       </div>`;
     }
 
-    // Payment method — editable when unpaid, display when paid
-    if (!isPaid) {
-      if (vendorMethods.length > 0) {
-        const selectedKey = r.payment_method ? Admin._paymentMethodKey(r.payment_method) : '';
-        const opts = vendorMethods.map(m => {
-          const key = Admin._paymentMethodKey(m);
-          const selected = key === selectedKey ? 'selected' : '';
-          return `<option value="${escapeHtml(key)}" ${selected}>${escapeHtml(Admin._paymentMethodLabel(m))}</option>`;
-        }).join('');
-        html += `<div class="form-group">
-          <label>Pay with</label>
-          <select id="modal-reimb-payment">
-            <option value="">— Choose method —</option>
-            ${opts}
-          </select>
-        </div>`;
-      } else if (r.vendor?.name) {
-        html += `<div class="text-sm text-muted" style="margin-top:8px">
-          No payment methods on file for ${escapeHtml(r.vendor.name)}. Add one in the vendor settings.
-        </div>`;
-      }
-    } else if (r.payment_method) {
+    if (r.payment_method) {
       html += `<div class="detail-field">
         <span class="detail-field-label">Paid via</span>
         <span class="detail-field-value">${escapeHtml(Admin._paymentMethodLabel(r.payment_method))}</span>
       </div>`;
     }
 
-    if (isPaid && r.updated_at) {
+    if (r.updated_at) {
       html += `<div class="detail-field">
         <span class="detail-field-label">Reimbursed</span>
         <span class="detail-field-value" style="color:var(--success)">${formatDate(r.updated_at.split('T')[0])}</span>
@@ -297,22 +280,107 @@ const Admin = {
         : `<img src="${escapeHtml(r.receipt_image_url)}" alt="Receipt" style="width:100%;border-radius:5px;margin-top:12px">`;
     }
 
-    if (!isPaid) {
-      html += `
-        <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="Admin.saveReimbDue('${r.id}')">Save</button>
-          <button class="btn btn-primary" onclick="Admin.markPaid('${r.id}')">Mark as Paid</button>
-        </div>
-      `;
-    } else {
-      html += `<div class="modal-actions"><button class="btn btn-ghost btn-block" onclick="hideModal()">Close</button></div>`;
-    }
+    html += `<div class="modal-actions"><button class="btn btn-ghost btn-block" onclick="hideModal()">Close</button></div>`;
 
-    Admin._editingReimb = r;
     showModal(html);
   },
 
+  _renderEditableReimbModal(r) {
+    const who = r.creator?.name || 'Unknown';
+    const allVendors = Admin._vendors || [];
+    const vendorOpts = allVendors.map(v =>
+      `<option value="${v.id}" ${v.id === r.vendor_id ? 'selected' : ''}>${escapeHtml(v.name)}</option>`
+    ).join('');
+
+    const html = `
+      <h3 class="modal-title">Reimbursement</h3>
+      <div class="form-group">
+        <label>For</label>
+        <input type="text" id="modal-reimb-title" value="${escapeHtml(r.title || '')}">
+      </div>
+      <div class="form-group">
+        <label>Amount</label>
+        <input type="number" id="modal-reimb-cost" step="0.01" min="0" value="${r.cost ?? ''}">
+      </div>
+      <div class="form-group">
+        <label>Description / Items</label>
+        <textarea id="modal-reimb-desc" rows="3" placeholder="Items: a, b, c">${escapeHtml(r.description || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Vendor</label>
+        <select id="modal-reimb-vendor" onchange="Admin._onReimbVendorChange(this.value)">
+          <option value="">— No vendor —</option>
+          ${vendorOpts}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Receipt</label>
+        <div id="modal-reimb-receipt-picker"></div>
+      </div>
+      <div class="detail-field">
+        <span class="detail-field-label">Submitted by</span>
+        <span class="detail-field-value">${escapeHtml(who)}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-field-label">Submitted</span>
+        <span class="detail-field-value">${formatDate(r.created_at?.split('T')[0])}</span>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Pay by</label>
+        <input type="date" id="modal-reimb-due" value="${escapeHtml(r.due_date || '')}">
+      </div>
+      <div id="modal-reimb-payment-slot"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="Admin.saveReimbEdits('${r.id}')">Save</button>
+        <button class="btn btn-primary" onclick="Admin.markPaid('${r.id}')">Mark as Paid</button>
+      </div>
+    `;
+
+    showModal(html);
+
+    Admin._reimbReceiptPicker = PhotoPicker.mount('modal-reimb-receipt-picker', {
+      label: 'Receipt',
+      acceptPdf: true,
+      initialUrl: r.receipt_image_url || null,
+    });
+
+    Admin._renderReimbPaymentSlot(r.vendor_id || '', r.payment_method);
+  },
+
+  _renderReimbPaymentSlot(vendorId, currentPaymentMethod) {
+    const slot = document.getElementById('modal-reimb-payment-slot');
+    if (!slot) return;
+    const vendor = (Admin._vendors || []).find(v => v.id === vendorId);
+    const methods = Array.isArray(vendor?.payment_methods) ? vendor.payment_methods : [];
+    if (methods.length === 0) {
+      slot.innerHTML = vendor?.name
+        ? `<div class="text-sm text-muted" style="margin-top:8px">No payment methods on file for ${escapeHtml(vendor.name)}. Add one in the vendor settings.</div>`
+        : '';
+      return;
+    }
+    const selectedKey = currentPaymentMethod ? Admin._paymentMethodKey(currentPaymentMethod) : '';
+    const opts = methods.map(m => {
+      const key = Admin._paymentMethodKey(m);
+      const selected = key === selectedKey ? 'selected' : '';
+      return `<option value="${escapeHtml(key)}" ${selected}>${escapeHtml(Admin._paymentMethodLabel(m))}</option>`;
+    }).join('');
+    slot.innerHTML = `<div class="form-group">
+      <label>Pay with</label>
+      <select id="modal-reimb-payment">
+        <option value="">— Choose method —</option>
+        ${opts}
+      </select>
+    </div>`;
+  },
+
+  _onReimbVendorChange(vendorId) {
+    const v = (Admin._vendors || []).find(x => x.id === vendorId) || null;
+    if (Admin._editingReimb) Admin._editingReimb.vendor = v;
+    Admin._renderReimbPaymentSlot(vendorId, null);
+  },
+
   _editingReimb: null,
+  _reimbReceiptPicker: null,
 
   _paymentMethodKey(m) {
     if (!m) return '';
@@ -328,12 +396,45 @@ const Admin = {
     return methods.find(m => Admin._paymentMethodKey(m) === sel.value) || null;
   },
 
-  async saveReimbDue(id) {
-    const due = document.getElementById('modal-reimb-due').value || null;
-    const updates = { due_date: due };
+  async _collectReimbEdits() {
+    const title = document.getElementById('modal-reimb-title')?.value.trim();
+    const costRaw = document.getElementById('modal-reimb-cost')?.value;
+    const desc = document.getElementById('modal-reimb-desc')?.value.trim();
+    const vendorId = document.getElementById('modal-reimb-vendor')?.value || null;
+    const due = document.getElementById('modal-reimb-due')?.value || null;
+
+    if (!title) { toast('Title is required'); return null; }
+    const cost = costRaw === '' ? null : Number(costRaw);
+    if (cost == null || isNaN(cost) || cost <= 0) { toast('Enter a valid amount'); return null; }
+
+    let receiptUrl = Admin._editingReimb?.receipt_image_url || null;
+    if (Admin._reimbReceiptPicker) {
+      try {
+        receiptUrl = await Admin._reimbReceiptPicker.resolve();
+      } catch (e) {
+        toast('Failed to upload receipt');
+        return null;
+      }
+    }
+
+    const updates = {
+      title,
+      description: desc || null,
+      cost,
+      vendor_id: vendorId,
+      receipt_image_url: receiptUrl,
+      due_date: due,
+    };
     const method = Admin._resolveSelectedPaymentMethod();
     if (method) updates.payment_method = method;
     else if (document.getElementById('modal-reimb-payment')) updates.payment_method = null;
+
+    return updates;
+  },
+
+  async saveReimbEdits(id) {
+    const updates = await Admin._collectReimbEdits();
+    if (!updates) return;
     const { error } = await sb.from('tasks').update(updates).eq('id', id);
     hideModal();
     if (error) { toast('Failed to save'); return; }
@@ -342,12 +443,11 @@ const Admin = {
   },
 
   async markPaid(id) {
-    const updates = { status: 'Done', updated_at: new Date().toISOString() };
-    const method = Admin._resolveSelectedPaymentMethod();
-    if (method) updates.payment_method = method;
-    const { error } = await sb.from('tasks')
-      .update(updates)
-      .eq('id', id);
+    const updates = await Admin._collectReimbEdits();
+    if (!updates) return;
+    updates.status = 'Done';
+    updates.updated_at = new Date().toISOString();
+    const { error } = await sb.from('tasks').update(updates).eq('id', id);
     hideModal();
     if (error) { toast('Failed to update'); return; }
     toast('Marked as paid');
