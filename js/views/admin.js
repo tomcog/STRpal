@@ -35,11 +35,11 @@ const Admin = {
 
     const pendingBody = pending.length > 0
       ? pending.map(r => Admin.renderReimbCard(r, false)).join('')
-      : '<div class="empty-state-sm">No pending reimbursements</div>';
+      : '<div class="empty-state-sm">No pending payments</div>';
 
     const completedBody = paid.length > 0
       ? paid.map(r => Admin.renderReimbCard(r, true)).join('')
-      : '<div class="empty-state-sm">No completed reimbursements</div>';
+      : '<div class="empty-state-sm">No completed payments</div>';
 
     const reimbCollapsed = !!Admin.collapsed.reimbursements;
     const completedCollapsed = !!Admin.collapsed.completed;
@@ -49,7 +49,7 @@ const Admin = {
         <div class="feed-section-header">
           <button type="button" class="feed-section-toggle" aria-expanded="${!reimbCollapsed}" data-section="reimbursements">
             <i data-lucide="chevron-down" class="feed-section-chevron icon-16"></i>
-            <span>REIMBURSEMENTS</span>
+            <span>PAYMENTS</span>
           </button>
         </div>
         <div class="feed-section-body">${pendingBody}</div>
@@ -87,7 +87,7 @@ const Admin = {
   },
 
   exportReimbursements(paid) {
-    const lines = ['REIMBURSEMENT REPORT', ''];
+    const lines = ['PAYMENT REPORT', ''];
     let total = 0;
 
     const sorted = [...paid].sort((a, b) =>
@@ -113,12 +113,12 @@ const Admin = {
     });
 
     lines.push('---');
-    lines.push(`Total: $${total.toFixed(2)} (${sorted.length} reimbursement${sorted.length !== 1 ? 's' : ''})`);
+    lines.push(`Total: $${total.toFixed(2)} (${sorted.length} payment${sorted.length !== 1 ? 's' : ''})`);
 
     const text = lines.join('\n');
 
     if (navigator.share) {
-      navigator.share({ title: 'Reimbursement Report', text }).catch(() => {
+      navigator.share({ title: 'Payment Report', text }).catch(() => {
         Admin._downloadReport(text);
       });
     } else {
@@ -131,7 +131,7 @@ const Admin = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'reimbursement-report.txt';
+    a.download = 'payment-report.txt';
     a.click();
     URL.revokeObjectURL(url);
   },
@@ -157,7 +157,7 @@ const Admin = {
       const paidDate = r.updated_at ? formatDate(r.updated_at.split('T')[0]) : '';
       return `
         <div class="reimb-chip reimb-card" data-id="${r.id}">
-          <span class="reimb-chip-label">${paidDate ? escapeHtml(paidDate) + ' — ' : ''}Reimbursement</span>
+          <span class="reimb-chip-label">${paidDate ? escapeHtml(paidDate) + ' — ' : ''}Payment</span>
           <span class="reimb-chip-amount">${formatCurrency(r.cost)}</span>
         </div>
       `;
@@ -175,7 +175,7 @@ const Admin = {
     return `
       <div class="card reimb-card" data-id="${r.id}" style="margin-bottom:8px">
         <div class="card-header">
-          <div class="card-title">${r.vendor?.name ? escapeHtml(r.vendor.name) : 'Reimbursement'}</div>
+          <div class="card-title">${r.vendor?.name ? escapeHtml(r.vendor.name) : 'Payment'}</div>
           <span style="font-weight:700;color:var(--text)">${formatCurrency(r.cost)}</span>
         </div>
         <div class="card-meta">${badges.join('')}</div>
@@ -205,7 +205,7 @@ const Admin = {
     const items = Admin.parseReimbItems(r.description);
     const purchasedAt = r.description?.match(/Purchased at:\s*(.+)/)?.[1]?.trim();
 
-    let html = `<h3 class="modal-title">Reimbursement</h3>`;
+    let html = `<h3 class="modal-title">Payment</h3>`;
 
     html += `<div class="detail-field">
       <span class="detail-field-label">For</span>
@@ -293,7 +293,7 @@ const Admin = {
     ).join('');
 
     const html = `
-      <h3 class="modal-title">Reimbursement</h3>
+      <h3 class="modal-title">Payment</h3>
       <div class="form-group">
         <label>For</label>
         <input type="text" id="modal-reimb-title" value="${escapeHtml(r.title || '')}">
