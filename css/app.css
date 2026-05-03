@@ -245,21 +245,20 @@ textarea { resize: vertical; min-height: 80px; }
 /* ===== BOTTOM NAV ===== */
 #bottom-nav {
   position: fixed;
-  bottom: var(--safe-bottom);
+  bottom: 0;
   left: 0;
   right: 0;
   display: flex;
   align-items: stretch;
   justify-content: space-around;
-  height: var(--nav-height);
+  height: calc(var(--nav-height) + var(--safe-bottom));
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   z-index: 100;
 }
 
-/* Fills the home-indicator safe area with the nav color so there's
-   no visible gap below the nav, regardless of how iOS resolves
-   `bottom: 0` in standalone PWA mode. */
+/* Fallback strip behind the nav: if `bottom: 0` ever resolves above
+   the safe area instead of the viewport edge, this fills the gap. */
 body::after {
   content: '';
   position: fixed;
