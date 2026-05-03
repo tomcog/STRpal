@@ -251,7 +251,8 @@ textarea { resize: vertical; min-height: 80px; }
   display: flex;
   align-items: stretch;
   justify-content: space-around;
-  height: var(--nav-height);
+  height: calc(var(--nav-height) + 16px);
+  padding-bottom: 16px;
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   z-index: 100;
@@ -284,7 +285,7 @@ textarea { resize: vertical; min-height: 80px; }
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: var(--nav-height);
+  padding-bottom: calc(var(--nav-height) + 16px);
 }
 
 .view { display: none; padding: 16px; }
