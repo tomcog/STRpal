@@ -4,9 +4,22 @@ const App = {
   allUsers: [],
 
   async init() {
-    // Register service worker
+    // Register service worker; auto-reload when a new version activates
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+        .then(reg => {
+          reg.update().catch(() => {});
+          reg.addEventListener('updatefound', () => {
+            const nw = reg.installing;
+            if (!nw) return;
+            nw.addEventListener('statechange', () => {
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                window.location.reload();
+              }
+            });
+          });
+        })
+        .catch(() => {});
     }
 
     // Default profile — so the UI is usable even if the users query hangs.
