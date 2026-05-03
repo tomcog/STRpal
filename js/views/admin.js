@@ -332,6 +332,7 @@ const Admin = {
       </div>
       <div id="modal-reimb-payment-slot"></div>
       <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="Admin.deleteReimb('${r.id}')">Delete</button>
         <button class="btn btn-ghost" onclick="Admin.saveReimbEdits('${r.id}')">Save</button>
         <button class="btn btn-primary" onclick="Admin.markPaid('${r.id}')">Mark as Paid</button>
       </div>
@@ -440,6 +441,15 @@ const Admin = {
     hideModal();
     if (error) { toast('Failed to save'); return; }
     toast('Saved');
+    Admin.loadReimbursements();
+  },
+
+  async deleteReimb(id) {
+    if (!confirm('Delete this payment? This cannot be undone.')) return;
+    const { error } = await sb.from('tasks').delete().eq('id', id);
+    hideModal();
+    if (error) { toast('Failed to delete'); return; }
+    toast('Payment deleted');
     Admin.loadReimbursements();
   },
 

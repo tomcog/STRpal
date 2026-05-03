@@ -244,7 +244,8 @@ textarea { resize: vertical; min-height: 80px; }
   align-items: stretch;
   justify-content: space-around;
   flex-shrink: 0;
-  height: var(--nav-height);
+  height: calc(var(--nav-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   z-index: 100;

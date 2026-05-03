@@ -170,10 +170,7 @@ const TaskDetail = {
       html += `<button class="btn btn-ghost btn-block" onclick="TaskDetail.showEditModal()">Edit Task</button>`;
     }
 
-    // Delete button (reimbursements are archived for tax records and cannot be deleted)
-    if (t.type !== 'reimbursement') {
-      html += `<button class="btn btn-danger btn-block" onclick="TaskDetail.confirmDelete()">Delete Task</button>`;
-    }
+    html += `<button class="btn btn-danger btn-block" onclick="TaskDetail.confirmDelete()">Delete Task</button>`;
 
     html += '</div>';
 
@@ -241,11 +238,6 @@ const TaskDetail = {
   },
 
   async doDelete() {
-    if (TaskDetail.task.type === 'reimbursement') {
-      hideModal();
-      toast('Reimbursements are kept for tax records');
-      return;
-    }
     const id = TaskDetail.task.id;
     const { error } = await sb.from('tasks').delete().eq('id', id);
     hideModal();
