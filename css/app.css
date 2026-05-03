@@ -245,7 +245,7 @@ textarea { resize: vertical; min-height: 80px; }
 /* ===== BOTTOM NAV ===== */
 #bottom-nav {
   position: fixed;
-  bottom: var(--safe-bottom);
+  bottom: 0;
   left: 0;
   right: 0;
   display: flex;
@@ -255,20 +255,6 @@ textarea { resize: vertical; min-height: 80px; }
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   z-index: 100;
-}
-
-/* Fills the home-indicator safe area with the nav color so there's
-   no visible gap below the nav. */
-body::after {
-  content: '';
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: var(--safe-bottom);
-  background: var(--bg-card);
-  z-index: 99;
-  pointer-events: none;
 }
 
 .nav-btn {
@@ -298,7 +284,7 @@ body::after {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(var(--nav-height) + var(--safe-bottom));
+  padding-bottom: var(--nav-height);
 }
 
 .view { display: none; padding: 16px; }
