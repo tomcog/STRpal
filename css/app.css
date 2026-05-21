@@ -913,6 +913,7 @@ textarea { resize: vertical; min-height: 80px; }
   object-fit: cover;
   border-radius: 5px;
   flex-shrink: 0;
+  cursor: zoom-in;
 }
 
 .shortlist-content { flex: 1; min-width: 0; }
