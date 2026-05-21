@@ -111,6 +111,26 @@ function hideModal() {
   document.getElementById('modal-overlay').classList.remove('open');
 }
 
+function openImageViewer(url) {
+  if (!url) return;
+  let overlay = document.getElementById('image-viewer');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'image-viewer';
+    overlay.className = 'image-viewer';
+    overlay.innerHTML = '<img class="image-viewer-img" alt=""><button class="image-viewer-close" aria-label="Close">&times;</button>';
+    overlay.addEventListener('click', () => closeImageViewer());
+    document.body.appendChild(overlay);
+  }
+  overlay.querySelector('.image-viewer-img').src = url;
+  overlay.classList.add('open');
+}
+
+function closeImageViewer() {
+  const overlay = document.getElementById('image-viewer');
+  if (overlay) overlay.classList.remove('open');
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(dateStr + 'T00:00:00');
@@ -169,6 +189,11 @@ document.addEventListener('touchend', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   refreshIcons();
   App.init();
+
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-image-viewer]');
+    if (target) openImageViewer(target.getAttribute('data-image-viewer'));
+  });
 
   // Auto-convert any <i data-lucide="..."> that gets inserted anywhere in the app.
   // Match <i data-lucide> only — Lucide preserves data-lucide on the generated <svg>,

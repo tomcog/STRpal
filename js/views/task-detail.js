@@ -53,7 +53,7 @@ const TaskDetail = {
           <span>View PDF</span>
         </a>`;
       } else {
-        html += `<img class="detail-photo" src="${escapeHtml(t.photo_url)}" alt="Task photo">`;
+        html += `<img class="detail-photo" src="${escapeHtml(t.photo_url)}" alt="Task photo" data-image-viewer="${escapeHtml(t.photo_url)}">`;
       }
     }
 
@@ -125,7 +125,7 @@ const TaskDetail = {
             <i data-lucide="file-text" class="icon-20"></i>
             <span>View Receipt PDF</span>
           </a>`
-        : `<img class="detail-photo" src="${escapeHtml(t.receipt_image_url)}" alt="Receipt">`;
+        : `<img class="detail-photo" src="${escapeHtml(t.receipt_image_url)}" alt="Receipt" data-image-viewer="${escapeHtml(t.receipt_image_url)}">`;
       html += `<div class="detail-section">
         <div class="detail-section-title">Receipt</div>
         ${receiptInner}
