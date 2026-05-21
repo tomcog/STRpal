@@ -2,6 +2,7 @@
 const TaskDetail = {
   task: null,
   links: [],
+  steps: [],
   optionsList: null,
 
   async load(taskId) {
@@ -20,8 +21,12 @@ const TaskDetail = {
 
     TaskDetail.task = task;
 
-    const { data: links } = await sb.from('task_links').select('*').eq('task_id', taskId).order('created_at', { ascending: true });
+    const [{ data: links }, { data: steps }] = await Promise.all([
+      sb.from('task_links').select('*').eq('task_id', taskId).order('created_at', { ascending: true }),
+      sb.from('task_steps').select('*').eq('task_id', taskId).order('created_at', { ascending: true }),
+    ]);
     TaskDetail.links = links || [];
+    TaskDetail.steps = steps || [];
     TaskDetail.render();
   },
 
@@ -116,6 +121,31 @@ const TaskDetail = {
       html += '<p class="text-sm text-muted">No links yet</p>';
     }
     html += `<button class="btn btn-sm btn-secondary" style="margin-top:10px" onclick="TaskDetail.showAddLinkModal()">+ Add Link</button>`;
+    html += '</div>';
+
+    // Steps timeline
+    html += '<div class="detail-section">';
+    html += '<div class="detail-section-title">Steps</div>';
+    if (TaskDetail.steps.length > 0) {
+      html += '<ol class="task-steps">';
+      TaskDetail.steps.forEach(step => {
+        html += `
+          <li class="task-step">
+            <div class="task-step-text">${escapeHtml(step.text)}</div>
+            <div class="task-step-date">${formatDate(step.created_at.slice(0, 10))}</div>
+          </li>
+        `;
+      });
+      html += '</ol>';
+    } else {
+      html += '<p class="text-sm text-muted">No steps yet</p>';
+    }
+    html += `
+      <div class="task-step-add">
+        <textarea id="task-step-input" rows="2" placeholder="Add a step..."></textarea>
+        <button class="btn btn-sm btn-secondary" onclick="TaskDetail.doAddStep()">Add</button>
+      </div>
+    `;
     html += '</div>';
 
     // Receipt image (for reimbursements)
@@ -221,6 +251,18 @@ const TaskDetail = {
   async removeLink(id) {
     const { error } = await sb.from('task_links').delete().eq('id', id);
     if (error) { toast('Failed to remove'); return; }
+    TaskDetail.load(TaskDetail.task.id);
+  },
+
+  async doAddStep() {
+    const input = document.getElementById('task-step-input');
+    const text = input?.value.trim();
+    if (!text) { toast('Enter a step'); return; }
+    const { error } = await sb.from('task_steps').insert({
+      task_id: TaskDetail.task.id,
+      text,
+    });
+    if (error) { toast('Failed to add step'); return; }
     TaskDetail.load(TaskDetail.task.id);
   },
 

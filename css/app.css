@@ -890,6 +890,64 @@ textarea { resize: vertical; min-height: 80px; }
 
 .task-link-delete:hover { color: var(--urgent); }
 
+/* ===== STEPS TIMELINE ===== */
+.task-steps {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  position: relative;
+}
+.task-steps::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--border);
+}
+.task-step {
+  position: relative;
+  padding: 0 0 12px 22px;
+}
+.task-step:last-child { padding-bottom: 0; }
+.task-step::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-card, var(--bg));
+  box-sizing: border-box;
+}
+.task-step-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.task-step-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.task-step-add {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.task-step-add textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 44px;
+}
+.task-step-add .btn { align-self: flex-start; }
+
 /* ===== SHORTLIST ===== */
 .shortlist-item {
   background: var(--bg-input);
