@@ -20,6 +20,12 @@ const Report = {
     });
 
     Report._loadVendors();
+
+    if (Report._prefill && Report._prefill.items && Report._prefill.items.length) {
+      const titleEl = document.getElementById('invoice-title');
+      if (titleEl) titleEl.value = Report._prefill.items.join(', ');
+    }
+    Report._prefill = null;
   },
 
   async _loadVendors() {

@@ -1,5 +1,8 @@
 // Inventory — running list of items that need regular restocking
 const Inventory = {
+  _selected: new Set(),
+  _items: [],
+
   init() {
     document.getElementById('add-inventory-btn').addEventListener('click', () => {
       Inventory.showAddModal();
@@ -16,8 +19,16 @@ const Inventory = {
 
     if (error || !data || data.length === 0) {
       list.innerHTML = '<div class="empty-state"><p>No inventory items yet</p></div>';
+      Inventory._items = [];
+      Inventory._selected.clear();
+      Inventory._refreshActionBar();
       return;
     }
+
+    Inventory._items = data;
+    // Drop selections for items that no longer exist.
+    const ids = new Set(data.map(i => i.id));
+    Inventory._selected.forEach(id => { if (!ids.has(id)) Inventory._selected.delete(id); });
 
     list.innerHTML = data.map(item => Inventory.renderItem(item)).join('');
 
@@ -25,11 +36,44 @@ const Inventory = {
       card.addEventListener('click', (e) => {
         if (e.target.closest('.inv-status-toggle')) return;
         if (e.target.closest('.inv-buy-link')) return;
+        if (e.target.closest('.inv-select')) return;
         Inventory.showDetailModal(data.find(i => i.id === card.dataset.id));
       });
     });
 
+    list.querySelectorAll('.inv-select input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const id = cb.dataset.id;
+        if (cb.checked) Inventory._selected.add(id);
+        else Inventory._selected.delete(id);
+        cb.closest('.inv-card')?.classList.toggle('selected', cb.checked);
+        Inventory._refreshActionBar();
+      });
+    });
+
     StockStatus.bind(list, (id, status) => Inventory.quickSetStatus(id, status));
+    Inventory._refreshActionBar();
+  },
+
+  _refreshActionBar() {
+    const bar = document.getElementById('inventory-action-bar');
+    const count = document.getElementById('inv-action-count');
+    const list = document.getElementById('inventory-list');
+    if (!bar || !count) return;
+    const n = Inventory._selected.size;
+    count.textContent = n;
+    bar.hidden = n === 0;
+    if (list) list.style.paddingBottom = n > 0 ? '80px' : '';
+  },
+
+  submitSelectedForReimbursement() {
+    const names = Inventory._items
+      .filter(i => Inventory._selected.has(i.id))
+      .map(i => i.item_name);
+    if (names.length === 0) { toast('Select at least one item'); return; }
+    Report._prefill = { items: names };
+    Inventory._selected.clear();
+    Router.navigate('report', 'invoice');
   },
 
   parseLinks(item) {
@@ -46,9 +90,13 @@ const Inventory = {
           <i data-lucide="shopping-cart" class="icon-18"></i>
         </a>`
       : '';
+    const isSelected = Inventory._selected.has(item.id);
     return `
-      <div class="inv-card" data-id="${item.id}">
+      <div class="inv-card ${isSelected ? 'selected' : ''}" data-id="${item.id}">
         <div class="inv-card-header">
+          <label class="inv-select" aria-label="Select for reimbursement">
+            <input type="checkbox" data-id="${item.id}" ${isSelected ? 'checked' : ''}>
+          </label>
           <div class="inv-name">${escapeHtml(item.item_name)}</div>
           <div class="inv-card-actions">
             ${buyBtn}

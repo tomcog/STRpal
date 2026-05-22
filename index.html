@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.svg">
-  <link rel="stylesheet" href="css/app.css?v=34">
+  <link rel="stylesheet" href="css/app.css?v=35">
 </head>
 <body>
 
@@ -146,6 +146,11 @@
           <span>ADD ITEM</span>
         </button>
         <div id="inventory-list" class="card-list"></div>
+        <div id="inventory-action-bar" class="inv-action-bar" hidden>
+          <button class="btn btn-primary btn-block" onclick="Inventory.submitSelectedForReimbursement()">
+            Submit <span id="inv-action-count">0</span> for Reimbursement
+          </button>
+        </div>
       </div>
 
       <!-- Admin View -->
@@ -221,21 +226,21 @@
   <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
-  <script src="js/supabase-client.js?v=34"></script>
-  <script src="js/notifications.js?v=34"></script>
-  <script src="js/photo-picker.js?v=34"></script>
-  <script src="js/options-list.js?v=34"></script>
-  <script src="js/stock-status.js?v=34"></script>
-  <script src="js/router.js?v=34"></script>
-  <script src="js/views/feed.js?v=34"></script>
-  <script src="js/views/task-detail.js?v=34"></script>
-  <script src="js/views/report.js?v=34"></script>
-  <script src="js/views/calendar.js?v=34"></script>
-  <script src="js/views/inventory.js?v=34"></script>
-  <script src="js/views/admin.js?v=34"></script>
-  <script src="js/views/sms.js?v=34"></script>
-  <script src="js/views/profile.js?v=34"></script>
-  <script src="js/app.js?v=34"></script>
+  <script src="js/supabase-client.js?v=35"></script>
+  <script src="js/notifications.js?v=35"></script>
+  <script src="js/photo-picker.js?v=35"></script>
+  <script src="js/options-list.js?v=35"></script>
+  <script src="js/stock-status.js?v=35"></script>
+  <script src="js/router.js?v=35"></script>
+  <script src="js/views/feed.js?v=35"></script>
+  <script src="js/views/task-detail.js?v=35"></script>
+  <script src="js/views/report.js?v=35"></script>
+  <script src="js/views/calendar.js?v=35"></script>
+  <script src="js/views/inventory.js?v=35"></script>
+  <script src="js/views/admin.js?v=35"></script>
+  <script src="js/views/sms.js?v=35"></script>
+  <script src="js/views/profile.js?v=35"></script>
+  <script src="js/app.js?v=35"></script>
 
 </body>
 </html>
