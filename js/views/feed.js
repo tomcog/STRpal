@@ -208,6 +208,8 @@ const Feed = {
 
   // ---- Reimbursement from acquired items ----
 
+  _reimbCostMode: 'total',
+
   showReimbursementModal() {
     // Get acquired items from the currently rendered list
     const doneItems = document.querySelectorAll('.check-item.checked');
@@ -216,18 +218,32 @@ const Feed = {
 
     if (ids.length === 0) { toast('No acquired items'); return; }
 
+    Feed._reimbCostMode = 'total';
+
     const itemListHtml = names.map((n, i) =>
-      `<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px">
+      `<div class="reimb-item-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px">
         <input type="checkbox" checked data-reimb-id="${ids[i]}" class="reimb-check">
-        ${escapeHtml(n)}
-      </label>`
+        <span style="flex:1">${escapeHtml(n)}</span>
+        <input type="number" class="reimb-item-cost" data-reimb-id="${ids[i]}" placeholder="0.00" step="0.01" style="width:90px;display:none">
+      </div>`
     ).join('');
 
     showModal(`
       <h3 class="modal-title">Submit for Reimbursement</h3>
       <div class="form-group">
+        <label>Cost entry</label>
+        <div class="priority-toggle" style="margin:0">
+          <button type="button" class="priority-btn active" data-reimb-mode="total" onclick="Feed.toggleReimbMode(this)">
+            One total
+          </button>
+          <button type="button" class="priority-btn" data-reimb-mode="per-item" onclick="Feed.toggleReimbMode(this)">
+            Per item
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
         <label>Select items</label>
-        <div style="max-height:200px;overflow-y:auto">${itemListHtml}</div>
+        <div id="modal-reimb-items" style="max-height:240px;overflow-y:auto">${itemListHtml}</div>
       </div>
       <div class="form-group">
         <label>Where purchased</label>
@@ -240,9 +256,13 @@ const Feed = {
           ${App.allUsers.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('')}
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group" id="modal-reimb-total-group">
         <label>Total cost</label>
         <input type="number" id="modal-reimb-cost" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group" id="modal-reimb-sum-group" style="display:none">
+        <label>Total</label>
+        <div id="modal-reimb-sum" style="font-size:18px;font-weight:600;padding:8px 0">$0.00</div>
       </div>
       <div class="form-group">
         <label>Receipt photo</label>
@@ -254,9 +274,43 @@ const Feed = {
       </div>
     `);
 
+    document.querySelectorAll('.reimb-check, .reimb-item-cost').forEach(el => {
+      el.addEventListener('input', () => Feed.recomputeReimbTotal());
+      el.addEventListener('change', () => Feed.recomputeReimbTotal());
+    });
+
     setTimeout(() => {
       Feed._reimbPicker = PhotoPicker.mount('reimb-receipt-picker', { label: 'Receipt photo' });
     }, 50);
+  },
+
+  toggleReimbMode(btn) {
+    Feed._reimbCostMode = btn.dataset.reimbMode;
+    btn.closest('.priority-toggle').querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const perItem = Feed._reimbCostMode === 'per-item';
+    document.querySelectorAll('.reimb-item-cost').forEach(el => {
+      el.style.display = perItem ? 'block' : 'none';
+    });
+    document.getElementById('modal-reimb-total-group').style.display = perItem ? 'none' : 'block';
+    document.getElementById('modal-reimb-sum-group').style.display = perItem ? 'block' : 'none';
+    if (perItem) Feed.recomputeReimbTotal();
+  },
+
+  recomputeReimbTotal() {
+    if (Feed._reimbCostMode !== 'per-item') return;
+    let sum = 0;
+    document.querySelectorAll('.reimb-item-row').forEach(row => {
+      const cb = row.querySelector('.reimb-check');
+      const costEl = row.querySelector('.reimb-item-cost');
+      if (cb && cb.checked && costEl) {
+        const v = Number(costEl.value);
+        if (!Number.isNaN(v)) sum += v;
+      }
+    });
+    const sumEl = document.getElementById('modal-reimb-sum');
+    if (sumEl) sumEl.textContent = formatCurrency(sum);
   },
 
   _reimbPicker: null,
@@ -268,9 +322,25 @@ const Feed = {
 
     const where = document.getElementById('modal-reimb-where').value.trim();
     const who = document.getElementById('modal-reimb-who').value;
-    const cost = document.getElementById('modal-reimb-cost').value;
 
-    if (!cost || Number(cost) <= 0) { toast('Enter the total cost'); return; }
+    let cost;
+    if (Feed._reimbCostMode === 'per-item') {
+      let sum = 0;
+      let anyEntered = false;
+      document.querySelectorAll('.reimb-item-row').forEach(row => {
+        const cb = row.querySelector('.reimb-check');
+        const costEl = row.querySelector('.reimb-item-cost');
+        if (cb && cb.checked && costEl && costEl.value !== '') {
+          const v = Number(costEl.value);
+          if (!Number.isNaN(v)) { sum += v; anyEntered = true; }
+        }
+      });
+      if (!anyEntered || sum <= 0) { toast('Enter a cost for at least one item'); return; }
+      cost = sum;
+    } else {
+      cost = document.getElementById('modal-reimb-cost').value;
+      if (!cost || Number(cost) <= 0) { toast('Enter the total cost'); return; }
+    }
 
     let receiptUrl = null;
     if (Feed._reimbPicker) {
@@ -284,8 +354,9 @@ const Feed = {
 
     // Get item names for the reimbursement title
     const names = Array.from(checked).map(cb => {
-      const row = cb.closest('label');
-      return row ? row.textContent.trim() : '';
+      const row = cb.closest('.reimb-item-row');
+      const nameEl = row ? row.querySelector('span') : null;
+      return nameEl ? nameEl.textContent.trim() : '';
     }).filter(n => n);
 
     const title = 'Reimbursement: ' + (names.length <= 3 ? names.join(', ') : names.slice(0, 3).join(', ') + ` +${names.length - 3} more`);
