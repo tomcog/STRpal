@@ -36,6 +36,21 @@ const Feed = {
     }
 
     tasks = tasks || [];
+
+    const ids = tasks.map(t => t.id);
+    Feed._latestSteps = {};
+    if (ids.length > 0) {
+      const { data: steps } = await sb.from('task_steps')
+        .select('task_id, text, created_at')
+        .in('task_id', ids)
+        .order('created_at', { ascending: false });
+      if (steps) {
+        for (const s of steps) {
+          if (!Feed._latestSteps[s.task_id]) Feed._latestSteps[s.task_id] = s;
+        }
+      }
+    }
+
     Feed.render(list, tasks);
   },
 
@@ -412,6 +427,11 @@ const Feed = {
 
     const metaHtml = badges.length > 0 ? `<div class="card-meta">${badges.join('')}</div>` : '';
 
+    const latestStep = Feed._latestSteps ? Feed._latestSteps[task.id] : null;
+    const stepHtml = latestStep
+      ? `<div class="card-latest-step"><i data-lucide="git-commit-horizontal" class="icon-16"></i><span>${escapeHtml(latestStep.text)}</span></div>`
+      : '';
+
     return `
       <div class="card" data-id="${task.id}">
         <div class="card-header">
@@ -420,6 +440,7 @@ const Feed = {
         </div>
         ${metaHtml}
         ${task.description ? `<div class="card-body">${escapeHtml(task.description).slice(0, 100)}</div>` : ''}
+        ${stepHtml}
         <div class="card-body text-sm" style="margin-top:4px">
           ${escapeHtml(assignee)}${task.due_date ? ' &middot; Due ' + formatDate(task.due_date) : ''}
         </div>
