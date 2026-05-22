@@ -1300,10 +1300,32 @@ textarea { resize: vertical; min-height: 80px; }
 
 .inv-card + .inv-card { margin-top: 10px; }
 
+.inv-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .inv-name {
   font-weight: 600;
   font-size: 15px;
+  flex: 1;
+  min-width: 0;
 }
+
+.inv-buy-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-input);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.inv-buy-link:hover { background: var(--border); }
 
 .inv-status-toggle {
   display: flex;

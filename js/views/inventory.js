@@ -24,6 +24,7 @@ const Inventory = {
     list.querySelectorAll('.inv-card').forEach(card => {
       card.addEventListener('click', (e) => {
         if (e.target.closest('.inv-status-toggle')) return;
+        if (e.target.closest('.inv-buy-link')) return;
         Inventory.showDetailModal(data.find(i => i.id === card.dataset.id));
       });
     });
@@ -38,9 +39,19 @@ const Inventory = {
   },
 
   renderItem(item) {
+    const links = Inventory.parseLinks(item);
+    const buyLink = links.find(l => l.url);
+    const buyBtn = buyLink
+      ? `<a class="inv-buy-link" href="${escapeHtml(buyLink.url)}" target="_blank" rel="noopener" aria-label="Open purchase link" onclick="event.stopPropagation()">
+          <i data-lucide="shopping-cart" class="icon-18"></i>
+        </a>`
+      : '';
     return `
       <div class="inv-card" data-id="${item.id}">
-        <div class="inv-name">${escapeHtml(item.item_name)}</div>
+        <div class="inv-card-header">
+          <div class="inv-name">${escapeHtml(item.item_name)}</div>
+          ${buyBtn}
+        </div>
         ${StockStatus.render(item)}
       </div>
     `;
