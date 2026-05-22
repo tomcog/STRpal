@@ -68,6 +68,45 @@
     return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
   }
 
+  // Downscale raster images to max 800px on the longest edge and re-encode as JPEG q0.75.
+  // Skips PDFs, SVGs, and anything we can't decode (returns the original file).
+  async function _compressImage(file) {
+    if (!file) return file;
+    if (_isPdfFile(file)) return file;
+    const type = (file.type || '').toLowerCase();
+    const name = (file.name || '').toLowerCase();
+    if (type === 'image/svg+xml' || name.endsWith('.svg')) return file;
+    if (!type.startsWith('image/') && !_isHeic(file)) return file;
+
+    const MAX_EDGE = 800;
+    const QUALITY = 0.75;
+
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch (e) {
+      return file;
+    }
+
+    const { width, height } = bitmap;
+    const scale = Math.min(1, MAX_EDGE / Math.max(width, height));
+    const w = Math.max(1, Math.round(width * scale));
+    const h = Math.max(1, Math.round(height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    if (bitmap.close) bitmap.close();
+
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', QUALITY));
+    if (!blob) return file;
+
+    const baseName = (file.name || 'photo').replace(/\.[^.]+$/, '') || 'photo';
+    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+  }
+
   class PhotoPicker {
     constructor(root, opts = {}) {
       this.root = root;
@@ -295,7 +334,10 @@
     }
 
     async resolve() {
-      if (this._file) return await uploadPhoto(this.bucket, this._file);
+      if (this._file) {
+        const compressed = await _compressImage(this._file);
+        return await uploadPhoto(this.bucket, compressed);
+      }
       return this._url || null;
     }
 
