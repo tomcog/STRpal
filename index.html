@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.svg">
-  <link rel="stylesheet" href="css/app.css?v=35">
+  <link rel="stylesheet" href="css/app.css?v=36">
 </head>
 <body>
 
@@ -72,8 +72,8 @@
       <!-- Report View (Issue or Invoice) -->
       <div id="view-report" class="view">
         <div class="feed-tabs" id="report-tabs">
-          <button class="feed-tab active" data-report-mode="issue">Issue</button>
-          <button class="feed-tab" data-report-mode="invoice">Invoice</button>
+          <button class="feed-tab active" data-report-mode="invoice">Request payment</button>
+          <button class="feed-tab" data-report-mode="issue">Issue</button>
         </div>
 
         <form id="report-form">
@@ -98,7 +98,7 @@
           <input type="text" id="invoice-title" placeholder="What's this for?" required>
           <input type="number" id="invoice-amount" placeholder="Amount ($)" step="0.01" min="0" required>
           <input type="text" id="invoice-submitter" placeholder="Submitter name (if no vendor selected)">
-          <button type="submit" class="btn btn-primary btn-block">Submit Invoice</button>
+          <button type="submit" class="btn btn-primary btn-block">Submit Request</button>
         </form>
       </div>
 
@@ -226,21 +226,21 @@
   <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
-  <script src="js/supabase-client.js?v=35"></script>
-  <script src="js/notifications.js?v=35"></script>
-  <script src="js/photo-picker.js?v=35"></script>
-  <script src="js/options-list.js?v=35"></script>
-  <script src="js/stock-status.js?v=35"></script>
-  <script src="js/router.js?v=35"></script>
-  <script src="js/views/feed.js?v=35"></script>
-  <script src="js/views/task-detail.js?v=35"></script>
-  <script src="js/views/report.js?v=35"></script>
-  <script src="js/views/calendar.js?v=35"></script>
-  <script src="js/views/inventory.js?v=35"></script>
-  <script src="js/views/admin.js?v=35"></script>
-  <script src="js/views/sms.js?v=35"></script>
-  <script src="js/views/profile.js?v=35"></script>
-  <script src="js/app.js?v=35"></script>
+  <script src="js/supabase-client.js?v=36"></script>
+  <script src="js/notifications.js?v=36"></script>
+  <script src="js/photo-picker.js?v=36"></script>
+  <script src="js/options-list.js?v=36"></script>
+  <script src="js/stock-status.js?v=36"></script>
+  <script src="js/router.js?v=36"></script>
+  <script src="js/views/feed.js?v=36"></script>
+  <script src="js/views/task-detail.js?v=36"></script>
+  <script src="js/views/report.js?v=36"></script>
+  <script src="js/views/calendar.js?v=36"></script>
+  <script src="js/views/inventory.js?v=36"></script>
+  <script src="js/views/admin.js?v=36"></script>
+  <script src="js/views/sms.js?v=36"></script>
+  <script src="js/views/profile.js?v=36"></script>
+  <script src="js/app.js?v=36"></script>
 
 </body>
 </html>

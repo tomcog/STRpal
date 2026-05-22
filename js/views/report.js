@@ -6,7 +6,7 @@ const Report = {
   mode: 'issue',
 
   reset(mode) {
-    Report.setMode(mode === 'invoice' ? 'invoice' : 'issue');
+    Report.setMode(mode === 'issue' ? 'issue' : 'invoice');
 
     if (Report.issuePicker) Report.issuePicker.clear();
     if (Report.invoicePicker) Report.invoicePicker.clear();
@@ -134,14 +134,14 @@ const Report = {
 
         if (error) throw error;
 
-        toast('Invoice submitted for payment');
+        toast('Payment request submitted');
         Report.reset('invoice');
         Router.navigate('feed');
       } catch (err) {
         toast(err.message || 'Failed to submit');
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Invoice';
+        submitBtn.textContent = 'Submit Request';
       }
     });
   },
