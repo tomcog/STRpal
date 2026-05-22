@@ -1314,6 +1314,13 @@ textarea { resize: vertical; min-height: 80px; }
   min-width: 0;
 }
 
+.inv-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .inv-buy-link {
   display: inline-flex;
   align-items: center;
@@ -1326,6 +1333,14 @@ textarea { resize: vertical; min-height: 80px; }
   flex-shrink: 0;
 }
 .inv-buy-link:hover { background: var(--border); }
+
+.inv-edit-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  pointer-events: none;
+}
 
 .inv-status-toggle {
   display: flex;
@@ -1346,6 +1361,11 @@ textarea { resize: vertical; min-height: 80px; }
   line-height: 16px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+}
+
+.inv-status-btn.active.check {
+  background: #6E6E73;
+  color: #FFFFFF;
 }
 
 .inv-status-btn.active.stocked {

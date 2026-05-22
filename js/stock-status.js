@@ -1,15 +1,16 @@
 // StockStatus — reusable stock-level marker for an inventory item.
-// Three states: Stocked | Low | Restock (stored in DB as "Empty").
+// Four states: Check | Stocked | Low | Restock (stored in DB as "Empty").
 //
 // Usage:
 //   container.innerHTML = StockStatus.render({ id, status });
 //   StockStatus.bind(container, (itemId, newStatus) => { ... });
 //
-// DB values remain 'Stocked' | 'Low' | 'Empty' for backwards compatibility;
+// DB values are 'Check' | 'Stocked' | 'Low' | 'Empty';
 // the Restock label is presentation-only.
 
 (function () {
   const OPTIONS = [
+    { value: 'Check',   label: 'Check',   cls: 'check' },
     { value: 'Stocked', label: 'Stocked', cls: 'stocked' },
     { value: 'Low',     label: 'Low',     cls: 'low' },
     { value: 'Empty',   label: 'Restock', cls: 'empty' },

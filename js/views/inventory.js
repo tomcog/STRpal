@@ -50,7 +50,10 @@ const Inventory = {
       <div class="inv-card" data-id="${item.id}">
         <div class="inv-card-header">
           <div class="inv-name">${escapeHtml(item.item_name)}</div>
-          ${buyBtn}
+          <div class="inv-card-actions">
+            ${buyBtn}
+            <span class="inv-edit-hint" aria-hidden="true"><i data-lucide="pencil" class="icon-18"></i></span>
+          </div>
         </div>
         ${StockStatus.render(item)}
       </div>
@@ -115,6 +118,7 @@ const Inventory = {
       <div class="form-group">
         <label>Status</label>
         <select id="modal-inv-status">
+          <option value="Check" ${item.status === 'Check' ? 'selected' : ''}>Check</option>
           <option value="Stocked" ${item.status === 'Stocked' ? 'selected' : ''}>Stocked</option>
           <option value="Low" ${item.status === 'Low' ? 'selected' : ''}>Low</option>
           <option value="Empty" ${item.status === 'Empty' ? 'selected' : ''}>Restock</option>
