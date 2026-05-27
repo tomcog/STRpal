@@ -183,16 +183,15 @@ const TaskDetail = {
     }
 
     // Status transitions
-    const hasPurchaseFlow = t.type === 'get' || t.type === 'reimbursement';
     if (t.status === 'Open') {
-      if (hasPurchaseFlow) {
-        html += `<button class="btn btn-secondary btn-block" onclick="TaskDetail.setStatus('Researching')">Move to Researching</button>`;
-      }
+      html += `<button class="btn btn-secondary btn-block" onclick="TaskDetail.setStatus('In-progress')">Start — Mark In-progress</button>`;
       html += `<button class="btn btn-primary btn-block" onclick="TaskDetail.setStatus('Done')">Mark Done</button>`;
-    } else if (t.status === 'Researching' && hasPurchaseFlow) {
+    } else if (t.status === 'In-progress') {
+      html += `<button class="btn btn-secondary btn-block" onclick="TaskDetail.setStatus('On hold')">Put On Hold</button>`;
       html += `<button class="btn btn-primary btn-block" onclick="TaskDetail.setStatus('Done')">Mark Done</button>`;
-    } else if (t.status === 'To Pay' && isFinance && hasPurchaseFlow) {
-      html += `<button class="btn btn-primary btn-block" onclick="TaskDetail.setStatus('Done')">Mark Paid & Done</button>`;
+    } else if (t.status === 'On hold') {
+      html += `<button class="btn btn-secondary btn-block" onclick="TaskDetail.setStatus('In-progress')">Resume — Mark In-progress</button>`;
+      html += `<button class="btn btn-primary btn-block" onclick="TaskDetail.setStatus('Done')">Mark Done</button>`;
     }
 
     // Edit button for admins
@@ -388,9 +387,8 @@ const TaskDetail = {
         <label>Status</label>
         <select id="modal-edit-status">
           <option value="Open" ${t.status === 'Open' ? 'selected' : ''}>Open</option>
-          ${t.type === 'get' || t.type === 'reimbursement' ? `
-          <option value="Researching" ${t.status === 'Researching' ? 'selected' : ''}>Researching</option>
-          <option value="To Pay" ${t.status === 'To Pay' ? 'selected' : ''}>To Pay</option>` : ''}
+          <option value="In-progress" ${t.status === 'In-progress' ? 'selected' : ''}>In-progress</option>
+          <option value="On hold" ${t.status === 'On hold' ? 'selected' : ''}>On hold</option>
           <option value="Done" ${t.status === 'Done' ? 'selected' : ''}>Done</option>
         </select>
       </div>

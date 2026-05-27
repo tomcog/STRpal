@@ -1,4 +1,4 @@
-const CACHE_NAME = 'strpal-v37';
+const CACHE_NAME = 'strpal-v39';
 const ASSETS = [
   '/',
   '/index.html',

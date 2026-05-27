@@ -126,7 +126,7 @@ const Report = {
           receipt_image_url: receiptUrl,
           cost: amount,
           priority: 'HAVE',
-          status: 'To Pay',
+          status: 'Open',
           type: 'reimbursement',
           vendor_id: vendorId,
           created_by: App.profile?.id || null,
@@ -146,5 +146,143 @@ const Report = {
     });
   },
 };
+
+// ── Create Invoice ──────────────────────────────────────────────────────────
+
+Report._invoiceItems = [];
+
+Report.showCreateInvoiceModal = function() {
+  Report._invoiceItems = [];
+  const name = escapeHtml(App.profile?.name || '');
+  showModal(`
+    <h3 class="modal-title">Create Invoice</h3>
+    <div class="form-group">
+      <label>Title</label>
+      <input type="text" id="ci-title" placeholder="What was purchased?">
+    </div>
+    <div class="form-group">
+      <label>Purchased by</label>
+      <input type="text" id="ci-purchased-by" placeholder="Name" value="${name}">
+    </div>
+    <div class="form-group">
+      <label>Amount to reimburse ($)</label>
+      <input type="number" id="ci-amount" placeholder="0.00" step="0.01" min="0">
+    </div>
+    <div class="form-group">
+      <label>Source</label>
+      <input type="text" id="ci-source" placeholder="Store or vendor name">
+    </div>
+    <div class="form-group">
+      <label>Items</label>
+      <div id="ci-items-list"></div>
+      <button type="button" class="btn btn-sm btn-secondary" style="margin-top:10px" onclick="Report.showAddItemModal()">+ Add item</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="Report.submitCreateInvoice()">Submit</button>
+    </div>
+  `);
+  Report._renderInvoiceItems();
+};
+
+Report._renderInvoiceItems = function() {
+  const list = document.getElementById('ci-items-list');
+  if (!list) return;
+  if (Report._invoiceItems.length === 0) {
+    list.innerHTML = '<p class="invoice-empty-items">No items added yet.</p>';
+    return;
+  }
+  const total = Report._invoiceItems.reduce((s, it) => s + it.cost, 0);
+  list.innerHTML = `
+    <div class="invoice-items-list">
+      ${Report._invoiceItems.map((it, i) => `
+        <div class="invoice-item-row">
+          <span class="invoice-item-name">${escapeHtml(it.name)}</span>
+          <span class="invoice-item-cost">${formatCurrency(it.cost)}</span>
+          <button class="invoice-item-delete" onclick="Report.removeInvoiceItem(${i})" aria-label="Remove">&times;</button>
+        </div>
+      `).join('')}
+      <div class="invoice-items-total">
+        <span>Total</span>
+        <span>${formatCurrency(total)}</span>
+      </div>
+    </div>
+  `;
+  // Auto-populate amount field from items total
+  const amountEl = document.getElementById('ci-amount');
+  if (amountEl && !amountEl.dataset.edited) amountEl.value = total.toFixed(2);
+};
+
+Report.removeInvoiceItem = function(index) {
+  Report._invoiceItems.splice(index, 1);
+  Report._renderInvoiceItems();
+};
+
+Report.showAddItemModal = function() {
+  const overlay = document.getElementById('item-entry-overlay');
+  if (!overlay) return;
+  document.getElementById('item-entry-name').value = '';
+  document.getElementById('item-entry-cost').value = '';
+  overlay.classList.add('open');
+  setTimeout(() => document.getElementById('item-entry-name')?.focus(), 80);
+};
+
+Report.hideAddItemModal = function() {
+  document.getElementById('item-entry-overlay')?.classList.remove('open');
+};
+
+Report.confirmAddItem = function() {
+  const name = document.getElementById('item-entry-name').value.trim();
+  const cost = parseFloat(document.getElementById('item-entry-cost').value) || 0;
+  if (!name) { toast('Enter an item name'); return; }
+  Report._invoiceItems.push({ name, cost });
+  Report.hideAddItemModal();
+  Report._renderInvoiceItems();
+};
+
+Report.submitCreateInvoice = async function() {
+  const title    = document.getElementById('ci-title').value.trim();
+  const by       = document.getElementById('ci-purchased-by').value.trim();
+  const amount   = parseFloat(document.getElementById('ci-amount').value) || 0;
+  const source   = document.getElementById('ci-source').value.trim();
+
+  if (!title)          { toast('Enter a title'); return; }
+  if (amount <= 0)     { toast('Enter a valid amount'); return; }
+
+  const lines = [];
+  if (by)     lines.push(`Purchased by: ${by}`);
+  if (source) lines.push(`Source: ${source}`);
+  if (Report._invoiceItems.length) {
+    const itemsStr = Report._invoiceItems.map(it => `${it.name} (${formatCurrency(it.cost)})`).join(', ');
+    lines.push(`Items: ${itemsStr}`);
+  }
+
+  const { error } = await sb.from('tasks').insert({
+    title: `Invoice: ${title}`,
+    description: lines.join('\n') || null,
+    cost: amount,
+    priority: 'HAVE',
+    status: 'Open',
+    type: 'reimbursement',
+    created_by: App.profile?.id || null,
+  });
+
+  if (error) { toast('Failed to submit: ' + error.message); return; }
+  hideModal();
+  Report._invoiceItems = [];
+  toast('Invoice submitted');
+  Router.navigate('feed');
+};
+
+// Wire up item-entry backdrop dismiss and amount-edited tracking
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('item-entry-overlay')?.addEventListener('click', function(e) {
+    if (e.target === this) Report.hideAddItemModal();
+  });
+  // Track if user manually edits the amount field
+  document.addEventListener('input', e => {
+    if (e.target?.id === 'ci-amount') e.target.dataset.edited = '1';
+  });
+});
 
 document.addEventListener('DOMContentLoaded', () => Report.init());

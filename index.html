@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.svg">
-  <link rel="stylesheet" href="css/app.css?v=37">
+  <link rel="stylesheet" href="css/app.css?v=39">
 </head>
 <body>
 
@@ -49,8 +49,9 @@
           <select id="feed-status-filter">
             <option value="">All Status</option>
             <option value="Open">Open</option>
-            <option value="Researching">Researching</option>
-            <option value="To Pay">To Pay</option>
+            <option value="In-progress">In-progress</option>
+            <option value="On hold">On hold</option>
+            <option value="Done">Done</option>
           </select>
           <select id="feed-assignee-filter">
             <option value="">Everyone</option>
@@ -91,6 +92,8 @@
         </form>
 
         <form id="invoice-form" hidden>
+          <button type="button" class="btn btn-secondary btn-block" style="margin-bottom:16px" onclick="Report.showCreateInvoiceModal()">Create invoice</button>
+          <div class="form-divider" style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:16px">— or submit a quick request —</div>
           <div id="invoice-photo-picker"></div>
           <select id="invoice-vendor-select">
             <option value="">— No vendor (or enter name below) —</option>
@@ -213,6 +216,30 @@
     <div id="modal-footer" class="modal-footer"></div>
   </div>
 
+  <!-- Item Entry Overlay (for Create Invoice items) -->
+  <div id="item-entry-overlay" class="item-entry-overlay">
+    <div class="item-entry-sheet">
+      <div class="item-entry-header">
+        <span class="item-entry-title">Add Item</span>
+        <button class="modal-close" onclick="Report.hideAddItemModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="item-entry-body">
+        <div class="form-group">
+          <label>Item</label>
+          <input type="text" id="item-entry-name" placeholder="e.g. Paper towels" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Cost</label>
+          <input type="number" id="item-entry-cost" placeholder="0.00" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="item-entry-footer">
+        <button class="btn btn-ghost" onclick="Report.hideAddItemModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="Report.confirmAddItem()">Add</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div id="toast" class="toast" hidden></div>
 
@@ -226,21 +253,21 @@
   <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
-  <script src="js/supabase-client.js?v=37"></script>
-  <script src="js/notifications.js?v=37"></script>
-  <script src="js/photo-picker.js?v=37"></script>
-  <script src="js/options-list.js?v=37"></script>
-  <script src="js/stock-status.js?v=37"></script>
-  <script src="js/router.js?v=37"></script>
-  <script src="js/views/feed.js?v=37"></script>
-  <script src="js/views/task-detail.js?v=37"></script>
-  <script src="js/views/report.js?v=37"></script>
-  <script src="js/views/calendar.js?v=37"></script>
-  <script src="js/views/inventory.js?v=37"></script>
-  <script src="js/views/admin.js?v=37"></script>
-  <script src="js/views/sms.js?v=37"></script>
-  <script src="js/views/profile.js?v=37"></script>
-  <script src="js/app.js?v=37"></script>
+  <script src="js/supabase-client.js?v=39"></script>
+  <script src="js/notifications.js?v=39"></script>
+  <script src="js/photo-picker.js?v=39"></script>
+  <script src="js/options-list.js?v=39"></script>
+  <script src="js/stock-status.js?v=39"></script>
+  <script src="js/router.js?v=39"></script>
+  <script src="js/views/feed.js?v=39"></script>
+  <script src="js/views/task-detail.js?v=39"></script>
+  <script src="js/views/report.js?v=39"></script>
+  <script src="js/views/calendar.js?v=39"></script>
+  <script src="js/views/inventory.js?v=39"></script>
+  <script src="js/views/admin.js?v=39"></script>
+  <script src="js/views/sms.js?v=39"></script>
+  <script src="js/views/profile.js?v=39"></script>
+  <script src="js/app.js?v=39"></script>
 
 </body>
 </html>

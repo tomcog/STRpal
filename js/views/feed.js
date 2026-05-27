@@ -386,7 +386,7 @@ const Feed = {
       receipt_image_url: receiptUrl,
       cost: Number(cost),
       priority: 'HAVE',
-      status: 'To Pay',
+      status: 'Open',
       type: 'reimbursement',
       created_by: who || App.profile?.id || null,
       assigned_to: who || null,
