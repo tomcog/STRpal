@@ -30,7 +30,9 @@
 }
 .admin-section.is-collapsed .admin-section-chevron { transform: rotate(-90deg); }
 
-.admin-section-body { display: flex; flex-direction: column; gap: 8px; }
+.admin-section-body { display: flex; flex-direction: column; gap: 16px; }
+/* Completed is a list of slim rows, not cards - keep it tight */
+.admin-section-body:has(> .admin-chip-row) { gap: 8px; }
 
 .admin-amount {
   flex-shrink: 0;

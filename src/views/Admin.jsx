@@ -287,7 +287,7 @@ function PendingCard({ r, onOpen }) {
   const overdue = r.due_date && r.due_date < todayStr();
   const submitter = r.creator?.name || 'Unknown';
   return (
-    <Card variant="float1" className="card-clickable" {...activate(onOpen)}>
+    <Card variant="flat" className="card-clickable" {...activate(onOpen)}>
       <div className="card-body">
         <div className="row-between">
           <div className="card-title">{payeeName(r) || 'Payment'}</div>
@@ -324,7 +324,7 @@ function VendorCard({ v, onOpen }) {
   const meta = [v.trade, v.contact_name, formatPhone(v.phone_number)].filter(Boolean).join(' · ');
   const methods = Array.isArray(v.payment_methods) ? v.payment_methods : [];
   return (
-    <Card variant="float1" className="card-clickable" {...activate(onOpen)}>
+    <Card variant="flat" className="card-clickable" {...activate(onOpen)}>
       <div className="card-body">
         <div className="card-title">{v.name}</div>
         {meta && <div className="text-sm text-muted">{meta}</div>}
@@ -342,7 +342,7 @@ function VendorCard({ v, onOpen }) {
 function UserCard({ u, onOpen }) {
   const perms = PERMISSIONS.filter(p => u[p.key]);
   return (
-    <Card variant="float1" className="card-clickable" {...activate(onOpen)}>
+    <Card variant="flat" className="card-clickable" {...activate(onOpen)}>
       <div className="card-body">
         <div className="card-title">{u.name}</div>
         <div className="text-sm text-muted">{formatPhone(u.phone_number) || 'No phone'}</div>
