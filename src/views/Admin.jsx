@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Card, Checkbox, InputSelect, InputText, InputTextarea, Spinner } from '@tomcoggia/ui';
-import { ChevronDown, FileBarChart, FileText, Plus } from 'lucide-react';
+import { ChevronDown, FileBarChart, Plus } from 'lucide-react';
 import { sb } from '../lib/supabase.js';
 import { formatDate, formatPhone, formatCurrency, isPdfUrl, todayStr } from '../lib/format.js';
 import { payeeName } from '../lib/payments.js';
@@ -11,6 +11,7 @@ import { openImageViewer } from '../components/ImageViewer.jsx';
 import { Sheet } from '../components/Sheet.jsx';
 import { PhotoPicker } from '../components/PhotoPicker.jsx';
 import { VendorSheet, paymentMethodKey, paymentMethodLabel } from '../components/VendorForm.jsx';
+import { PdfThumbnail } from '../components/PdfThumbnail.jsx';
 import { PaymentReportSheet } from './PaymentReport.jsx';
 import './Admin.css';
 
@@ -406,10 +407,7 @@ function PaidReimbSheet({ r, onClose }) {
 
         {r.receipt_image_url && (isPdfUrl(r.receipt_image_url) ? (
           <div>
-            <a className="pdf-chip" href={r.receipt_image_url} target="_blank" rel="noopener noreferrer">
-              <FileText aria-hidden="true" />
-              <span>View Receipt PDF</span>
-            </a>
+            <PdfThumbnail url={r.receipt_image_url} label="View Receipt PDF" />
           </div>
         ) : (
           <img
