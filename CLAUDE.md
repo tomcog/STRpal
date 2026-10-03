@@ -4,45 +4,52 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `npm run dev` — serves the app on **port 5179** via `npx serve`. The script first reads `../ports.json` and aborts if `STRpal` isn't pinned to 5179, so the port is not negotiable. There is no build, lint, or test tooling.
+- `npm run dev` — Vite dev server on **port 5179**. It first reads `../ports.json` and aborts if `STRpal` isn't pinned to 5179, so the port is not negotiable (`--strictPort`).
+- `npm run build` — production build to `dist/` (Vercel runs this on deploy). `npm run preview` serves the build on 5179.
+- There is no lint or test tooling.
 
 ## Architecture
 
-STRpal is a vanilla-JS PWA (no bundler, no framework, no modules) for short-term-rental crew operations. `index.html` loads every script as a plain `<script>` tag in a fixed order; everything communicates through globals.
+STRpal is a React 18 + Vite PWA for short-term-rental crew operations, built on the **`@tomcoggia/ui`** component library (`github:tomcog/component-library#vX.Y.Z`, source in `~/Sites/component-library`). Plain JS/JSX, no TypeScript.
 
-### Global object layout
+### Layout of `src/`
 
-Each file attaches one global. Load order in `index.html` matters — later files assume earlier ones exist:
-
-1. Vendor CDNs: `supabase-js`, `lucide` (icons), `Sortable` (drag-reorder), `heic2any` (iOS photo conversion).
-2. `js/supabase-client.js` → `sb` (the Supabase client) and `uploadPhoto(bucket, file)`. The anon key + URL are hardcoded here on purpose (public anon key).
-3. Shared modules: `Notifications`, `PhotoPicker`, `OptionsList`, `StockStatus`.
-4. `js/router.js` → `Router`.
-5. View modules in `js/views/` → `Feed`, `TaskDetail`, `Report`, `Calendar`, `Inventory`, `Admin`, `SMS`, `Profile`. Each exposes a `load(param?)` that the router calls.
-6. `js/app.js` → `App` and DOM-ready bootstrap. Also defines util globals: `toast`, `showModal` / `hideModal`, `formatDate`, `formatPhone`, `formatCurrency`, `escapeHtml`, `isPdfUrl`, `refreshIcons`.
+- `main.jsx` — entry. Imports `styles/index.css` **before** `@tomcoggia/ui/styles.css` (see Styling), mounts `<AppProvider><App/></AppProvider>`, installs the iOS zoom blockers and registers the service worker.
+- `app/App.jsx` — the shell: `LeftRail` + `NavRail`/`NavSlat` at ≥48rem, `BottomNav` below it, the header (page title, notifications bell, profile), and the view switch. Also mounts the global hosts (`Toaster`, `ConfirmHost`, `ImageViewerHost`).
+- `app/AppContext.jsx` — `useApp()` → `profile`, `users`, `setUsers`, `refreshUsers`, `updateProfile`, `can(perm)`, `isAdmin()`.
+- `lib/` — `supabase.js` (`sb`, `uploadPhoto`, `SUPABASE_URL`; the anon key is hardcoded on purpose), `format.js` (`formatDate`, `formatCurrency`, `formatPhone`, `isPdfUrl`, `todayStr`, `timeAgo`), `router.js` (hash router: `useRoute()`, `navigate(view, param)`, `back()`, `TITLES`).
+- `components/` — app-level shared pieces: `Sheet` (form sheet), `ConfirmDialog` (`await confirmDialog({...})`, built on the library `Modal`), `Toast` (`toast(msg)`), `ImageViewer` (`openImageViewer(url)`), `PhotoPicker` (ref API `resolve()/clear()/setUrl()/getValue()`), `Notifications`, `OptionsList`, `StockStatus`, `VendorForm` (`VendorSheet`).
+- `views/` — one default-export component per route, each with an optional `<Name>.css`.
 
 ### Routing
 
-Hash-based, no library. `Router.show(viewName, param)` toggles `.view.active` on `<div id="view-X">` blocks already present in `index.html` and dispatches to the matching view module's `load()`. The hardcoded title map and view-load switch live in `router.js` — adding a new view means: new `<div id="view-X">` in `index.html`, new module global, new entry in both maps, and a new `<script>` tag.
-
-### Modal pattern
-
-`showModal(html)` parses the HTML, lifts `.modal-title` into the modal header and `.modal-actions` into the footer, then injects the rest. View code builds modals as HTML strings and wires up listeners by `getElementById` after calling `showModal` — there is no template system.
+Hash-based, same URLs as the old app: `#feed`, `#task-detail/<id>`, `#report[/invoice|/issue]`, `#calendar`, `#inventory`, `#admin`, `#profile`, `#sms`. Adding a view = a component in `views/`, a case in `renderView()` and (if it's a section) an entry in `SECTIONS` in `App.jsx`, plus a title in `TITLES`.
 
 ### Auth & permissions
 
-There is **no real auth right now**. `App.init()` loads all rows from `users`, picks the first as the active profile, and force-sets every permission flag (`is_admin`, `can_view_calendar`, `can_manage_finances`, `can_assign_tasks`) to true. `App.can(perm)` and `App.isAdmin()` are the gating functions to call from views — keep using them so re-enabling auth is a one-file change.
+There is **no real auth right now**. `AppProvider` loads `users`, picks the first as the active profile, and forces every permission flag on. Views gate through `can(perm)` / `isAdmin()` — keep using them so re-enabling auth is a one-file change.
 
 ### Backend (Supabase)
 
-- Tables in use: `users`, `tasks`, `task_links`, `rentals`, `vendors`, `inventory_standards`.
-- Storage bucket: `photos` (default for `PhotoPicker`). Files uploaded via `uploadPhoto()` go to a public URL.
-- Edge Function: `/functions/v1/fetch-product` — called from `feed.js`'s "Fetch" button on the task-create modal to scrape title/price/description/image from a product URL. The function's source is not in this repo.
+- Tables: `users`, `tasks`, `task_links`, `rentals`, `vendors`, `inventory_standards`, `shortlist_options`, `notifications`.
+- Storage bucket `photos` (PhotoPicker's default); uploads are public URLs. Images are re-encoded to JPEG ≤1000px before upload.
+- Edge Function `/functions/v1/fetch-product` scrapes title/price/description/image from a product URL (source not in this repo).
+- **The project is live data.** Don't insert/update/delete while testing unless the user says to.
 
-### Service worker / cache busting
+### Styling
 
-`sw.js` uses a network-first, cache-fallback strategy keyed on `CACHE_NAME = 'strpal-v13'`. Every `<script>` and `<link>` in `index.html` carries a `?v=13` query string. **When you ship JS/CSS changes, bump the version in three places together:** the `?v=N` query strings in `index.html`, `CACHE_NAME` in `sw.js`, and (if you added/removed files) the `ASSETS` precache list in `sw.js`. Forgetting any of these leaves users on stale code.
+- Use library components first (`Button`, `ButtonRound`, `InputText`, `InputSelect`, `InputTextarea`, `Checkbox`, `Tabs`, `SegmentedControl`, `Pill`, `Tag`, `Card`, `Modal`, `Spinner`, nav components). Prop types: `node_modules/@tomcoggia/ui/dist/index.d.ts`; docs: `~/Sites/component-library/docs/components/`.
+- **Cascade layers:** the library ships inside `@layer ui`. `styles/index.css` declares `@layer base, ui;` first and puts the reset in `base`; if `ui` were named first, the reset's `button` rules would strip library button backgrounds. App CSS is unlayered and wins over both — so **never target library classes** (they're hashed anyway); size/position them from a wrapper or `className`.
+- **Theme:** `styles/theme.css` overrides only library *semantic* tokens (`--ui-action`, `--ui-brand` — STRpal's blue). Never override primitives (`--ui-tc-red`, `--ui-neutral-*`). App-only tokens are `--app-*`.
+- Use `--ui-*` tokens for colour, type, radius, shadow and motion. Shared layout classes live in `styles/app.css` (`page`, `stack`, `row-between`, `form`, `form-row`, `card-body`, `status-badge`, `fab-stack`, `action-bar`, …). View CSS is prefixed with the view name.
+- `Card` has no padding by design — wrap content in `.card-body`. `Tag` is neutral; coloured states use `.status-badge <tone>`.
+- The library `Modal` is a 350px confirmation dialog; long create/edit forms use the app `Sheet`.
+- **Upgrading the library:** bump the tag in `package.json`, `npm install`, and read the library's `CHANGELOG.md` — renamed tokens fail silently. The `allowScripts` entry for `@tomcoggia/ui@x.y.z` must match the new version or its `prepare` build won't run on install.
+
+### PWA / service worker
+
+`vite-plugin-pwa` generates the service worker (`registerType: 'autoUpdate'`); hashed asset names replace the old `?v=N` cache busting, so there is nothing to bump by hand. Supabase REST reads are cached network-first and storage images cache-first (see `vite.config.js`). `public/manifest.json` is linked from `index.html`.
 
 ### Mobile-only quirks
 
-The app is mobile-first and disables zoom aggressively: viewport meta blocks scaling, and `app.js` swallows `gesturestart`/`gesturechange`/`gestureend` plus double-tap `touchend` to defeat iOS Safari's default zoom. If you add zoomable UI (image viewer, map), it has to opt out locally — don't unhook the global handlers.
+The app is mobile-first and disables zoom: the viewport meta blocks scaling and `main.jsx` swallows `gesturestart`/`gesturechange`/`gestureend` plus double-tap `touchend`. A zoomable UI (image viewer, map) has to opt out locally — don't unhook the global handlers.

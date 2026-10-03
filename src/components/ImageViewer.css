@@ -1,0 +1,32 @@
+.image-viewer {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+  cursor: zoom-out;
+}
+.image-viewer-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--ui-card-radius);
+}
+.image-viewer-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgb(255 255 255 / 0.15);
+  color: var(--ui-text-on-media);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

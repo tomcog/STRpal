@@ -1,0 +1,300 @@
+/* ===================================================================
+   App shell
+   Phones: header on top, BottomNav pinned to the bottom.
+   >= 48rem: LeftRail fixed on the left, BottomNav hidden (NextJob's split).
+   =================================================================== */
+
+.app-shell {
+  height: 100%;
+  display: flex;
+}
+
+.app-rail { display: none; }
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: var(--safe-top) 8px 0 16px;
+  height: calc(var(--app-header-height) + var(--safe-top));
+  background: var(--ui-surface-raised);
+  border-bottom: 1px solid var(--ui-border-subtle);
+  z-index: 100;
+}
+.app-header-title {
+  font-size: var(--ui-type-heading-font-size);
+  line-height: var(--ui-type-heading-line-height);
+  font-weight: var(--ui-type-heading-font-weight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-header-actions { display: flex; align-items: center; gap: 4px; }
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.app-bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 100;
+  padding-bottom: var(--safe-bottom);
+  background: var(--ui-surface-raised);
+}
+
+/* Bell badge sits on the ButtonRound's corner */
+.notif-anchor { position: relative; display: inline-flex; }
+.notif-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--ui-pill-radius);
+  background: var(--ui-danger);
+  color: var(--ui-text-on-danger);
+  font-size: var(--ui-type-label-sm-font-size);
+  line-height: 18px;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+}
+
+.rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ui-text-default);
+}
+.rail-brand img { width: 40px; height: 40px; border-radius: 9px; }
+.rail-brand span {
+  font-size: var(--ui-type-label-xl-font-size);
+  line-height: var(--ui-type-label-xl-line-height);
+  font-weight: 700;
+}
+.rail-nav-badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: var(--ui-pill-radius);
+  background: var(--ui-danger);
+  color: var(--ui-text-on-danger);
+  font-size: var(--ui-type-label-sm-font-size);
+  line-height: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (min-width: 48rem) {
+  .app-rail {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: var(--app-rail-width);
+    height: 100%;
+    overflow-y: auto;
+    border-right: 1px solid var(--ui-border-subtle);
+  }
+  .app-bottom-nav { display: none; }
+  .app-header { padding-inline: 24px 16px; }
+}
+
+/* ===================================================================
+   Shared view layout - views compose these instead of restyling the
+   library components.
+   =================================================================== */
+
+.page {
+  max-width: var(--app-content-max);
+  margin: 0 auto;
+  padding: 16px 16px calc(var(--app-bottom-nav-height) + var(--safe-bottom) + 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.page-wide { max-width: 1100px; }
+@media (min-width: 48rem) {
+  .page { padding: 24px 24px 48px; }
+}
+
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.stack-sm { display: flex; flex-direction: column; gap: 6px; }
+.stack-lg { display: flex; flex-direction: column; gap: 24px; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row-nowrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.row-end { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+
+/* Pairs fields side by side once there's room (stacked on phones) */
+.form-row { display: flex; flex-direction: column; gap: 16px; }
+@media (min-width: 600px) {
+  .form-row { flex-direction: row; gap: 16px; }
+  .form-row > * { flex: 1; min-width: 0; }
+}
+.form { display: flex; flex-direction: column; gap: 16px; }
+/* Library inputs have no width of their own; fill the column */
+.form > *, .form-row > * { width: 100%; }
+.field-label {
+  font-size: var(--ui-type-label-md-font-size);
+  line-height: var(--ui-type-label-md-line-height);
+  font-weight: var(--ui-type-label-font-weight);
+  color: var(--ui-text-muted);
+  margin-bottom: 6px;
+}
+
+/* Section heading over a list */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+}
+.section-title {
+  font-size: var(--ui-type-label-md-font-size);
+  line-height: var(--ui-type-label-md-line-height);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+}
+.view-heading {
+  font-size: var(--ui-type-label-xl-font-size);
+  line-height: var(--ui-type-label-xl-line-height);
+  font-weight: 700;
+}
+
+/* Card has no padding of its own (library decision); this is the app's */
+.card-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.card-clickable { cursor: pointer; transition: box-shadow var(--ui-motion-fast); }
+.card-clickable:focus-visible { outline: 2px solid var(--ui-action); outline-offset: 2px; }
+.card-list { display: flex; flex-direction: column; gap: 10px; }
+.card-title {
+  font-size: var(--ui-type-label-lg-font-size);
+  line-height: var(--ui-type-label-lg-line-height);
+  font-weight: 600;
+  color: var(--ui-text-default);
+  overflow-wrap: anywhere;
+}
+.card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.card-thumb {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: zoom-in;
+}
+
+.text-muted { color: var(--ui-text-muted); }
+.text-faint { color: var(--ui-text-faint); }
+.text-sm { font-size: var(--ui-type-body-md-font-size); line-height: var(--ui-type-body-md-line-height); }
+.text-xs { font-size: var(--ui-type-body-sm-font-size); line-height: var(--ui-type-body-sm-line-height); }
+.text-strong { font-weight: 700; }
+.text-success { color: var(--app-success); }
+.text-danger { color: var(--ui-danger); }
+.pre-wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.empty-state {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--ui-text-muted);
+}
+.empty-state-sm { padding: 12px 0; color: var(--ui-text-muted); font-size: var(--ui-type-body-md-font-size); }
+
+.divider { height: 1px; background: var(--ui-border-subtle); border: 0; }
+
+/* Coloured status badges. Tag (library) states neutral facts; these carry a
+   meaning by colour (urgent, done, blocked) that Tag deliberately can't. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--ui-pill-radius);
+  font-size: var(--ui-type-label-sm-font-size);
+  line-height: var(--ui-type-label-md-line-height);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: var(--ui-surface-muted);
+  color: var(--ui-text-default);
+}
+.status-badge.urgent  { background: var(--app-urgent-bg);  color: var(--ui-danger-darker); }
+.status-badge.success { background: var(--app-success-bg); color: var(--app-success); }
+.status-badge.warning { background: var(--app-warning-bg); color: var(--app-warning); }
+.status-badge.info    { background: color-mix(in srgb, var(--ui-action) 14%, var(--ui-surface-raised)); color: var(--ui-action); }
+.status-badge.muted   { background: var(--ui-surface-sunken); color: var(--ui-text-muted); }
+
+/* Label/value pairs in detail screens */
+.detail-field {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ui-border-subtle);
+}
+.detail-field-label { color: var(--ui-text-muted); }
+.detail-field-value { font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+
+/* Floating action button position (the button itself is a ButtonRound) */
+.fab-stack {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--app-bottom-nav-height) + var(--safe-bottom) + 16px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 90;
+}
+.fab-stack > * { box-shadow: var(--ui-shadow-float-1); }
+@media (min-width: 48rem) {
+  .fab-stack { bottom: 24px; right: 24px; }
+}
+
+/* Sticky bar pinned above the bottom nav (e.g. "Submit 3 for reimbursement") */
+.action-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(var(--app-bottom-nav-height) + var(--safe-bottom));
+  padding: 12px 16px;
+  background: var(--ui-surface-raised);
+  border-top: 1px solid var(--ui-border-subtle);
+  z-index: 95;
+}
+@media (min-width: 48rem) {
+  .action-bar { left: var(--app-rail-width); bottom: 0; }
+}
+.btn-block { width: 100%; }
+
+/* Inline PDF link chip */
+.pdf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--ui-surface-sunken);
+  color: var(--ui-text-default);
+  text-decoration: none;
+  font-weight: 600;
+}
+.pdf-chip svg { color: var(--ui-action); width: 18px; height: 18px; }

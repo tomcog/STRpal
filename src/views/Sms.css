@@ -1,0 +1,17 @@
+.sms-preview-box {
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border-default);
+  border-radius: var(--ui-card-radius);
+  padding: 16px;
+  font-size: var(--ui-type-body-md-font-size);
+  line-height: 1.6;
+  color: var(--ui-text-default);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  margin-bottom: 16px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.sms-recipient { margin-bottom: 16px; }

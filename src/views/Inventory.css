@@ -1,0 +1,91 @@
+/* Inventory: a narrow single column of item cards, as in legacy (max 400px). */
+.inv-column {
+  max-width: 400px;
+  margin-inline: auto;
+}
+
+.inv-add-btn { margin-bottom: 14px; }
+
+/* Leave room so the sticky action bar never covers the last card */
+.inv-page.inv-has-bar { padding-bottom: calc(var(--app-bottom-nav-height) + var(--safe-bottom) + 96px); }
+@media (min-width: 48rem) {
+  .inv-page.inv-has-bar { padding-bottom: 96px; }
+}
+
+.inv-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inv-card-selected {
+  outline: 2px solid var(--ui-action);
+  outline-offset: -2px;
+}
+
+.inv-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.inv-select {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.inv-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--ui-type-label-lg-font-size);
+  line-height: var(--ui-type-label-lg-line-height);
+  font-weight: 600;
+  color: var(--ui-text-default);
+  overflow-wrap: anywhere;
+}
+
+.inv-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.inv-edit-hint {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ui-text-faint);
+  pointer-events: none;
+}
+
+/* Stock status track sits on its own line; allow it to scroll rather than overflow at 375px */
+.inv-status {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Edit sheet */
+.inv-last-stocked-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.inv-last-stocked-row > :last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.inv-link-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.inv-link-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}

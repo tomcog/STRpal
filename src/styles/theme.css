@@ -1,0 +1,29 @@
+/**
+ * STRpal's theme over @tomcoggia/ui.
+ *
+ * Only the library's SEMANTIC tokens are overridden here - never its
+ * primitives (--ui-tc-red, --ui-neutral-*). STRpal keeps the blue it has always
+ * used for actions and chrome; change these two lines to take the library's
+ * default red instead. Danger and safety keep the library's own colours.
+ */
+:root {
+  --ui-action: #007aff;
+  --ui-brand: #007aff;
+
+  /* App-level layout tokens (not library tokens, so no --ui- prefix) */
+  --app-page-bg: var(--ui-surface-pale);
+  --app-rail-width: 200px;
+  --app-header-height: 56px;
+  --app-bottom-nav-height: 73px; /* BottomNav: 1 rule + 8 padding + 64 row */
+  --app-content-max: 760px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Status colours used by task badges and calendar stays (app vocabulary) */
+  --app-success: var(--ui-safety-darker);
+  --app-success-bg: var(--ui-safety-lighter);
+  --app-warning: #b25e00;
+  --app-warning-bg: #fff3df;
+  --app-urgent: var(--ui-danger);
+  --app-urgent-bg: var(--ui-danger-lighter);
+}

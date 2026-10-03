@@ -1,0 +1,166 @@
+/* Admin view: collapsible sections of payments, vendors and team */
+
+.admin-page { gap: 20px; }
+
+.admin-section { display: flex; flex-direction: column; gap: 8px; }
+
+.admin-section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--ui-type-label-md-font-size);
+  line-height: var(--ui-type-label-md-line-height);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ui-text-default);
+}
+.admin-section-toggle:focus-visible {
+  outline: 2px solid var(--ui-action);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.admin-section-chevron {
+  flex-shrink: 0;
+  transition: transform var(--ui-motion-fast);
+}
+.admin-section.is-collapsed .admin-section-chevron { transform: rotate(-90deg); }
+
+.admin-section-body { display: flex; flex-direction: column; gap: 16px; }
+/* Completed is lines of text, not cards - no gap; the rows carry their own padding */
+.admin-section-body:has(> .admin-chip-row) { gap: 0; }
+
+.admin-amount {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--ui-text-default);
+}
+
+/* Paid payment: a plain line of text - date - payee on the left, amount right.
+   Still a button (it opens the paid sheet), just with no container. */
+.admin-chip-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--ui-text-default);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-chip-row:hover .admin-chip-row-label { color: var(--ui-action); }
+.admin-chip-row:focus-visible { outline: 2px solid var(--ui-action); outline-offset: 2px; }
+.admin-chip-row-label {
+  min-width: 0;
+  font-size: var(--ui-type-body-lg-font-size);
+  line-height: var(--ui-type-body-lg-line-height);
+  overflow-wrap: anywhere;
+  transition: color var(--ui-motion-fast);
+}
+.admin-chip-row-amount {
+  flex-shrink: 0;
+  font-size: var(--ui-type-body-lg-font-size);
+  line-height: var(--ui-type-body-lg-line-height);
+  font-weight: 600;
+  color: var(--app-success);
+}
+
+/* Permission / payment-method chips on vendor and user cards */
+.admin-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.admin-chip {
+  padding: 2px 8px;
+  border-radius: var(--ui-pill-radius);
+  font-size: var(--ui-type-label-sm-font-size);
+  line-height: var(--ui-type-label-md-line-height);
+  font-weight: 600;
+  background: var(--ui-surface-sunken);
+  color: var(--ui-text-muted);
+}
+.admin-chip.is-on { background: var(--app-success-bg); color: var(--app-success); }
+
+.admin-loading { display: flex; justify-content: center; padding: 24px 0; }
+
+.admin-subtitle { margin-bottom: 8px; }
+
+.admin-items {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ui-text-default);
+  font-size: var(--ui-type-body-md-font-size);
+  line-height: 1.8;
+}
+
+.admin-receipt {
+  width: 100%;
+  border-radius: var(--ui-card-radius);
+  cursor: zoom-in;
+}
+
+/* Permission checkboxes, one per ruled row */
+.admin-perms { display: flex; flex-direction: column; }
+.admin-perm-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ui-border-subtle);
+}
+
+/* ---- Payment report sheet ---- */
+.admin-report-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+.admin-report-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--ui-card-radius);
+  background: var(--ui-surface-raised);
+}
+.admin-report-total-value {
+  font-size: var(--ui-type-label-xl-font-size);
+  line-height: var(--ui-type-label-xl-line-height);
+  font-weight: 700;
+  color: var(--ui-text-default);
+}
+
+.admin-report-list {
+  border-radius: var(--ui-card-radius);
+  background: var(--ui-surface-raised);
+  overflow: hidden;
+}
+.admin-report-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 104px 72px 84px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid var(--ui-border-subtle);
+  font-size: var(--ui-type-body-md-font-size);
+  line-height: var(--ui-type-body-md-line-height);
+}
+.admin-report-head {
+  border-top: 0;
+  color: var(--ui-text-muted);
+  font-size: var(--ui-type-label-sm-font-size);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.admin-report-payee { display: flex; flex-direction: column; min-width: 0; }
+.admin-report-payee > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-report-amount { text-align: right; font-weight: 700; }
+
+/* Phones: drop the Type column, keep date / payee / status / amount */
+@media (max-width: 599px) {
+  .admin-report-row { grid-template-columns: 52px minmax(0, 1fr) auto auto; gap: 8px; }
+  .admin-report-row > :nth-child(3) { display: none; }
+}
