@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, InputText, InputTextarea } from '@tomcoggia/ui';
-import { FileText, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { sb, SUPABASE_URL } from '../lib/supabase.js';
 import { formatCurrency, isPdfUrl } from '../lib/format.js';
 import { toast } from './Toast.jsx';
 import { openImageViewer } from './ImageViewer.jsx';
 import { Sheet } from './Sheet.jsx';
 import { PhotoPicker } from './PhotoPicker.jsx';
+import { PdfThumbnail } from './PdfThumbnail.jsx';
 import './OptionsList.css';
 
 /**
@@ -177,9 +178,7 @@ export function OptionsList({ taskId, title = 'Options', onChange }) {
           {items.map(opt => (
             <div key={opt.id} className={`ol-item${opt.is_selected ? ' ol-selected' : ''}`}>
               {opt.photo_url && (isPdfUrl(opt.photo_url) ? (
-                <a className="pdf-chip ol-pdf" href={opt.photo_url} target="_blank" rel="noopener noreferrer">
-                  <FileText aria-hidden="true" /><span>PDF</span>
-                </a>
+                <PdfThumbnail url={opt.photo_url} label="PDF" className="ol-pdf" />
               ) : (
                 <img
                   className="ol-photo"

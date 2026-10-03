@@ -26,6 +26,11 @@
 }
 .ol-photo:focus-visible { outline: 2px solid var(--ui-action); outline-offset: 2px; }
 .ol-pdf { flex-shrink: 0; }
+/* Same 64px column as an option photo */
+.ol-pdf.pdf-thumb { width: 64px; gap: 4px; }
+.ol-pdf .pdf-thumb-img { max-height: 64px; max-width: 64px; box-shadow: none; }
+.ol-pdf .pdf-thumb-caption { font-size: var(--ui-type-label-sm-font-size); line-height: var(--ui-type-label-sm-line-height); }
+.ol-pdf .pdf-thumb-caption svg { width: 12px; height: 12px; }
 
 .ol-content { flex: 1; min-width: 0; }
 .ol-head { align-items: baseline; }
