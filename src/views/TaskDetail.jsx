@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Button, ButtonRound, Checkbox, InputSelect, InputText, InputTextarea, Segment, SegmentedControl, Spinner,
 } from '@tomcoggia/ui';
-import { ArrowLeft, FileText, Link as LinkIcon, Plus, X } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, Plus, X } from 'lucide-react';
 import { sb } from '../lib/supabase.js';
 import { formatCurrency, formatDate, isPdfUrl } from '../lib/format.js';
 import { back } from '../lib/router.js';
@@ -12,6 +12,7 @@ import { confirmDialog } from '../components/ConfirmDialog.jsx';
 import { openImageViewer } from '../components/ImageViewer.jsx';
 import { Sheet } from '../components/Sheet.jsx';
 import { OptionsList } from '../components/OptionsList.jsx';
+import { PdfThumbnail } from '../components/PdfThumbnail.jsx';
 import './TaskDetail.css';
 
 const STATUS_TONE = {
@@ -28,11 +29,7 @@ const isCrewOnly = () => false;
 
 function Photo({ url, alt, pdfLabel }) {
   if (isPdfUrl(url)) {
-    return (
-      <a className="pdf-chip td-pdf" href={url} target="_blank" rel="noopener noreferrer">
-        <FileText aria-hidden="true" /><span>{pdfLabel}</span>
-      </a>
-    );
+    return <div className="td-pdf"><PdfThumbnail url={url} label={pdfLabel} /></div>;
   }
   return (
     <img
