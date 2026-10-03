@@ -30,6 +30,7 @@
 }
 .sheet-body {
   flex: 1;
+  min-height: 0; /* let the body, not the sheet, take the overflow */
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 16px;
@@ -49,6 +50,10 @@
 }
 /* A single full-width action reads as the sheet's one answer */
 .sheet-footer > .btn-block { flex: 1; }
+
+/* Content keeps its natural height and the body scrolls - otherwise flex
+   squashes children (and anything with overflow: hidden gets clipped) */
+.sheet-body > * { flex-shrink: 0; }
 
 @keyframes sheet-in {
   from { opacity: 0; translate: 0 24px; }

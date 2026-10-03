@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Card, Checkbox, InputSelect, InputText, InputTextarea, Spinner } from '@tomcoggia/ui';
-import { ChevronDown, FileText, Plus } from 'lucide-react';
+import { ChevronDown, FileBarChart, FileText, Plus } from 'lucide-react';
 import { sb } from '../lib/supabase.js';
 import { formatDate, formatPhone, formatCurrency, isPdfUrl, todayStr } from '../lib/format.js';
+import { payeeName } from '../lib/payments.js';
 import { useApp } from '../app/AppContext.jsx';
 import { toast } from '../components/Toast.jsx';
 import { confirmDialog } from '../components/ConfirmDialog.jsx';
@@ -10,6 +11,7 @@ import { openImageViewer } from '../components/ImageViewer.jsx';
 import { Sheet } from '../components/Sheet.jsx';
 import { PhotoPicker } from '../components/PhotoPicker.jsx';
 import { VendorSheet, paymentMethodKey, paymentMethodLabel } from '../components/VendorForm.jsx';
+import { PaymentReportSheet } from './PaymentReport.jsx';
 import './Admin.css';
 
 // Admin: payments to make, vendors, and team management.
@@ -41,13 +43,6 @@ function parseReimbItems(description) {
 }
 
 const dateOnly = (ts) => (ts ? ts.split('T')[0] : null);
-
-// Who gets the money. A reimbursement names the person being paid back
-// (assigned_to); there the vendor is only where it was bought. Otherwise the
-// vendor is the payee, as on an invoice.
-function payeeName(r) {
-  return r.recipient?.name || r.vendor?.name || r.creator?.name || null;
-}
 
 function exportReimbursements(paid) {
   const lines = ['PAYMENT REPORT', ''];
@@ -117,6 +112,7 @@ export default function Admin() {
   const [editingReimb, setEditingReimb] = useState(null);
   const [vendorSheet, setVendorSheet] = useState(null); // { vendor: row|null }
   const [userSheet, setUserSheet] = useState(null); // { user: row|null }
+  const [reportOpen, setReportOpen] = useState(false);
 
   const toggle = (key) => setCollapsed(c => {
     const next = { ...c, [key]: !c[key] };
@@ -158,6 +154,12 @@ export default function Admin() {
 
   return (
     <div className="page page-wide admin-page">
+      <div className="row-end">
+        <Button variant="secondary" size="md" icon={<FileBarChart />} onClick={() => setReportOpen(true)} disabled={!reimbs}>
+          Payment report
+        </Button>
+      </div>
+
       {reimbs && reimbs.length > 0 && (<>
         <AdminSection id="reimbursements" title="PENDING PAYMENTS" collapsed={!!collapsed.reimbursements} onToggle={toggle}>
           {pending.length > 0
@@ -227,6 +229,8 @@ export default function Admin() {
           onDone={() => { setEditingReimb(null); loadReimbursements(); }}
         />
       )}
+
+      <PaymentReportSheet open={reportOpen} payments={reimbs} onClose={() => setReportOpen(false)} />
 
       <VendorSheet
         open={!!vendorSheet}
