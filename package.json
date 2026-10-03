@@ -1,9 +1,33 @@
 {
   "name": "strpal",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
   "description": "STR Crew Operations PWA",
   "scripts": {
-    "dev": "node -e \"const p=require('../ports.json').STRpal; if(!p){console.error('ERROR: STRpal not found in ports.json');process.exit(1)} if(p!==5179){console.error('ERROR: ports.json has port '+p+', expected 5179');process.exit(1)} console.log('Port check passed: '+p)\" && npx serve . -p 5179"
+    "check-port": "node -e \"const p=require('../ports.json').STRpal; if(!p){console.error('ERROR: STRpal not found in ports.json');process.exit(1)} if(p!==5179){console.error('ERROR: ports.json has port '+p+', expected 5179');process.exit(1)} console.log('Port check passed: '+p)\"",
+    "dev": "npm run check-port && vite --port 5179 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 5179 --strictPort"
   },
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "@tomcoggia/ui": "github:tomcog/component-library#v0.78.0",
+    "heic2any": "^0.0.4",
+    "lucide-react": "^1.51.0",
+    "pdfjs-dist": "^4.10.38",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sortablejs": "^1.15.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "vite": "^5.4.21",
+    "vite-plugin-pwa": "^2.0.0"
+  },
+  "allowScripts": {
+    "@tomcoggia/ui@0.78.0": true,
+    "esbuild@0.21.5": true
+  }
 }

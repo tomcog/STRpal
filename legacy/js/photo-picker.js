@@ -1,6 +1,6 @@
 // Unified photo input: drag & drop, paste, file browse, or URL.
 // Usage:
-//   const picker = PhotoPicker.mount(containerEl, { initialUrl, label });
+//   const picker = PhotoPicker.mount(containerEl, { initialUrl, label, showUrl });
 //   const url = await picker.resolve(); // uploads file if needed, returns URL or null
 //
 // getValue()  -> { file: File|null, url: string|null }
@@ -68,7 +68,7 @@
     return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
   }
 
-  // Downscale raster images to max 800px on the longest edge and re-encode as JPEG q0.75.
+  // Downscale raster images to max 1000px on the longest edge and re-encode as JPEG q0.75.
   // Skips PDFs, SVGs, and anything we can't decode (returns the original file).
   async function _compressImage(file) {
     if (!file) return file;
@@ -78,7 +78,7 @@
     if (type === 'image/svg+xml' || name.endsWith('.svg')) return file;
     if (!type.startsWith('image/') && !_isHeic(file)) return file;
 
-    const MAX_EDGE = 800;
+    const MAX_EDGE = 1000;
     const QUALITY = 0.75;
 
     let bitmap;
@@ -97,6 +97,9 @@
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
+    // JPEG has no alpha — fill white so transparent PNGs don't turn black
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
     ctx.drawImage(bitmap, 0, 0, w, h);
     if (bitmap.close) bitmap.close();
 
@@ -113,11 +116,13 @@
       this.label = opts.label || 'Photo';
       this.bucket = opts.bucket || 'photos';
       this.acceptPdf = opts.acceptPdf !== false;
+      this.showUrl = opts.showUrl !== false;
       this._file = null;
       this._url = opts.initialUrl || null;
       this._id = `pp-${++_nextId}`;
       this._render();
       this._wire();
+      this._syncFilled();
     }
 
     _render() {
@@ -148,7 +153,7 @@
           <button type="button" class="pp-clear" data-pp-clear aria-label="Remove attachment" ${hasPhoto ? '' : 'hidden'}>&times;</button>
         </div>
         <input type="file" id="${this._id}-file" data-pp-file accept="${acceptAttr}" ${captureAttr} hidden>
-        <div class="pp-url-row">
+        <div class="pp-url-row"${this.showUrl ? '' : ' style="display:none"'}>
           <input type="url" class="pp-url" data-pp-url placeholder="${urlPlaceholder}" value="${escapeHtml(typeof this._url === 'string' ? this._url : '')}">
         </div>
       `;
@@ -170,11 +175,14 @@
     _wire() {
       const { drop, file, url, clear } = this._els;
 
+      // Once something is attached it must be removed (×) before another can be added
       drop.addEventListener('click', (e) => {
         if (e.target.closest('[data-pp-clear]')) return;
+        if (this._hasValue()) return;
         file.click();
       });
       drop.addEventListener('keydown', (e) => {
+        if (this._hasValue()) return;
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); }
       });
 
@@ -187,6 +195,7 @@
         drop.addEventListener(ev, (e) => {
           e.preventDefault();
           e.stopPropagation();
+          if (this._hasValue()) { if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'; return; }
           if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
           drop.classList.add('pp-dragging');
         });
@@ -201,6 +210,7 @@
         e.preventDefault();
         e.stopPropagation();
         drop.classList.remove('pp-dragging');
+        if (this._hasValue()) return;
         const dt = e.dataTransfer;
         if (!dt) return;
         const f = dt.files && dt.files[0];
@@ -211,6 +221,7 @@
 
       this._pasteHandler = (e) => {
         if (!this.root.isConnected) return;
+        if (this._hasValue()) return;
         if (!this.root.contains(document.activeElement) && document.activeElement !== document.body) return;
         const items = e.clipboardData && e.clipboardData.items;
         if (!items) return;
@@ -244,11 +255,24 @@
       });
     }
 
+    _hasValue() {
+      return !!(this._file || this._url);
+    }
+
+    _syncFilled() {
+      const filled = this._hasValue();
+      this._els.drop.classList.toggle('pp-filled', filled);
+      this._els.drop.setAttribute('aria-label', filled
+        ? `${this.label} attached — remove it to add a different one`
+        : `${this.label}: drop, paste, or click to browse`);
+    }
+
     async _setFile(file) {
       this._file = file;
       this._url = null;
       this._els.url.value = '';
       this._els.clear.hidden = false;
+      this._syncFilled();
 
       if (this.acceptPdf && _isPdfFile(file)) {
         this._els.preview.hidden = true;
@@ -280,6 +304,7 @@
           this._els.placeholder.innerHTML = '<div class="pp-placeholder-text"><strong>Couldn\'t convert HEIC</strong><span>Try a JPG/PNG</span></div>';
           this._file = null;
           this._els.clear.hidden = true;
+          this._syncFilled();
         }
         return;
       }
@@ -313,6 +338,7 @@
         this._els.placeholder.hidden = false;
         this._els.clear.hidden = true;
       }
+      this._syncFilled();
     }
 
     clear() {
@@ -327,6 +353,7 @@
       this._els.placeholder.hidden = false;
       if (this._defaultPlaceholderHTML) this._els.placeholder.innerHTML = this._defaultPlaceholderHTML;
       this._els.clear.hidden = true;
+      this._syncFilled();
     }
 
     getValue() {

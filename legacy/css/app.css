@@ -1622,90 +1622,6 @@ input.date-icon-left::-webkit-calendar-picker-indicator {
 .perm-value.yes { color: var(--success); }
 .perm-value.no { color: var(--text-dim); }
 
-/* ===== ITEM ENTRY OVERLAY (Create Invoice sub-sheet) ===== */
-.item-entry-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  z-index: 300;
-  display: none;
-  align-items: flex-end;
-}
-.item-entry-overlay.open {
-  display: flex;
-}
-.item-entry-sheet {
-  background: var(--bg-card);
-  width: 100%;
-  border-radius: 16px 16px 0 0;
-  padding-bottom: var(--safe-bottom, 16px);
-}
-.item-entry-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid var(--border);
-}
-.item-entry-title {
-  font-size: 16px;
-  font-weight: 700;
-}
-.item-entry-body {
-  padding: 16px 16px 8px;
-}
-.item-entry-footer {
-  display: flex;
-  gap: 10px;
-  padding: 4px 16px 12px;
-}
-.item-entry-footer .btn { flex: 1; }
-
-/* ===== INVOICE ITEMS LIST ===== */
-.invoice-items-list { margin: 4px 0 0; }
-.invoice-item-row {
-  display: flex;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-  gap: 8px;
-}
-.invoice-item-name {
-  flex: 1;
-  font-size: 14px;
-  color: var(--text);
-}
-.invoice-item-cost {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-}
-.invoice-item-delete {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 2px;
-  flex-shrink: 0;
-}
-.invoice-items-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0 4px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-}
-.invoice-empty-items {
-  font-size: 13px;
-  color: var(--text-muted);
-  padding: 6px 0 4px;
-}
-
 /* ===== MODAL ===== */
 .modal-overlay {
   position: fixed;
@@ -1865,6 +1781,18 @@ input.date-icon-left::-webkit-calendar-picker-indicator {
   margin-bottom: 12px;
 }
 
+/* Pairs fields side by side once there's room (stacked on phones) */
+@media (min-width: 600px) {
+  .form-row {
+    display: flex;
+    gap: 12px;
+  }
+  .form-row > .form-group {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .form-group label {
   display: block;
   font-size: 13px;
@@ -1949,7 +1877,11 @@ input.date-icon-left::-webkit-calendar-picker-indicator {
 .pp-dropzone:hover,
 .pp-dropzone:focus { border-color: var(--accent, #0a84ff); outline: none; }
 .pp-dropzone.pp-dragging { border-color: var(--accent, #0a84ff); background: #e8f0fe; }
-.pp-preview { width: 100%; max-height: 240px; object-fit: cover; display: block; }
+.photo-picker [hidden] { display: none !important; }
+.pp-dropzone.pp-filled { cursor: default; border-style: solid; background: var(--bg-card, #fff); }
+.pp-dropzone.pp-filled:hover,
+.pp-dropzone.pp-filled:focus { border-color: var(--border, #d1d1d6); }
+.pp-preview { width: 100%; max-height: 320px; object-fit: contain; display: block; }
 .pp-doc-preview {
   display: flex;
   flex-direction: column;

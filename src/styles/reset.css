@@ -1,0 +1,32 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  height: 100vh;
+  height: 100dvh;
+  touch-action: pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  height: 100vh;
+  height: 100dvh;
+  font-family: var(--ui-font-family, var(--ui-font-primary), var(--ui-font-fallback));
+  font-size: var(--ui-type-body-lg-font-size);
+  line-height: var(--ui-type-body-lg-line-height);
+  background: var(--app-page-bg);
+  color: var(--ui-text-default);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  touch-action: pan-y;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root { height: 100%; }
+
+img, svg { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+a { color: var(--ui-action); }

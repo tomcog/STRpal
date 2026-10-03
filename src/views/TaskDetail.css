@@ -1,0 +1,105 @@
+.td-page { gap: 20px; }
+
+.td-title {
+  font-size: var(--ui-type-heading-font-size);
+  line-height: var(--ui-type-heading-line-height);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.td-badges { gap: 6px; }
+
+/* Badge tones the shared .status-badge set doesn't carry */
+.status-badge.td-tone-hold {
+  background: color-mix(in srgb, var(--ui-brand) 12%, var(--ui-surface-raised));
+  color: var(--ui-brand);
+}
+.status-badge.td-tone-backlog { background: var(--app-warning-bg); color: var(--app-warning); }
+.status-badge.td-tone-provider { background: var(--ui-danger-lighter); color: var(--ui-danger-darker); }
+
+.td-photo {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: var(--ui-card-radius);
+  cursor: zoom-in;
+}
+.td-photo:focus-visible { outline: 2px solid var(--ui-action); outline-offset: 2px; }
+.td-pdf { align-self: flex-start; }
+
+.td-section { display: flex; flex-direction: column; gap: 8px; }
+
+/* Links */
+.td-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 12px;
+  background: var(--ui-surface-pale);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-card-radius);
+}
+.td-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ui-action);
+  text-decoration: none;
+  font-size: var(--ui-type-body-md-font-size);
+  line-height: var(--ui-type-body-md-line-height);
+  font-weight: 500;
+}
+.td-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+.td-link-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Steps timeline */
+.td-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+.td-steps::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--ui-border-default);
+}
+.td-step { position: relative; padding: 0 0 12px 22px; }
+.td-step:last-child { padding-bottom: 0; }
+.td-step::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ui-action);
+  border: 2px solid var(--ui-surface-raised);
+  box-sizing: border-box;
+}
+.td-step-text {
+  font-size: var(--ui-type-body-md-font-size);
+  line-height: var(--ui-type-body-md-line-height);
+  color: var(--ui-text-default);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.td-step-date {
+  margin-top: 2px;
+  font-size: var(--ui-type-body-sm-font-size);
+  line-height: var(--ui-type-body-sm-line-height);
+  color: var(--ui-text-muted);
+}
+.td-step-add { display: flex; flex-direction: column; gap: 8px; }
+.td-step-add > :first-child { width: 100%; }
+
+.td-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+
+.td-segmented { width: 100%; }

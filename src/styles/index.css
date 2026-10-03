@@ -1,0 +1,14 @@
+/**
+ * Cascade layer order, declared before anything else so it wins.
+ *
+ * @tomcoggia/ui ships its CSS inside `@layer ui`. The reset lives in `base`,
+ * and `ui` must be named after it: a layer's position is fixed the first time
+ * its name is seen, and if `ui` came first the reset's `button` rules would
+ * strip the library Button's background. App CSS is unlayered, so it beats both.
+ */
+@layer base, ui;
+
+@import '@tomcoggia/ui/fonts.css';
+@import './reset.css' layer(base);
+@import './theme.css';
+@import './app.css';

@@ -1,0 +1,15 @@
+.profile-name {
+  font-size: var(--ui-type-heading-font-size);
+  line-height: var(--ui-type-heading-line-height);
+  font-weight: 700;
+  color: var(--ui-text-default);
+  margin-bottom: 4px;
+}
+
+.profile-phone {
+  color: var(--ui-text-muted);
+  font-size: var(--ui-type-body-md-font-size);
+  line-height: var(--ui-type-body-md-line-height);
+}
+
+.profile-links { margin-top: 24px; }

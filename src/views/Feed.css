@@ -1,0 +1,199 @@
+/* ===== Feed (Tasks) view ===== */
+
+.feed-filters {
+  display: flex;
+  gap: 8px;
+}
+.feed-filters > * { flex: 1; min-width: 0; }
+
+.feed-loading {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+.feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---- Sections ---- */
+.feed-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feed-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.feed-section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: var(--ui-type-label-lg-font-size);
+  line-height: var(--ui-type-label-lg-line-height);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ui-text-default);
+  cursor: pointer;
+}
+.feed-section-toggle:focus-visible {
+  outline: 2px solid var(--ui-action);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.feed-section-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform var(--ui-motion-fast);
+}
+.feed-section-collapsed .feed-section-chevron { transform: rotate(-90deg); }
+.feed-section-collapsed .feed-section-body { display: none; }
+
+.feed-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- Task cards ---- */
+.feed-card { touch-action: manipulation; }
+
+.feed-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.feed-card-cost { flex-shrink: 0; white-space: nowrap; }
+
+.feed-card-desc { overflow-wrap: anywhere; }
+
+.feed-card-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--ui-surface-sunken);
+  border-left: 3px solid var(--ui-action);
+  border-radius: 4px;
+  font-size: var(--ui-type-body-md-font-size);
+  line-height: var(--ui-type-body-md-line-height);
+  color: var(--ui-text-default);
+}
+.feed-card-step svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--ui-action);
+}
+.feed-card-step span {
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.feed-card-photo {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.feed-card-pdf {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.feed-badge-provider {
+  background: var(--ui-danger-lighter);
+  color: var(--ui-danger-darker);
+}
+
+/* Sortable drag states */
+.feed-card-drag-ghost { opacity: 0.4; }
+.feed-card-drag-chosen { box-shadow: var(--ui-shadow-float-2); }
+
+/* ---- Shopping list checklist ---- */
+.feed-checklist {
+  display: flex;
+  flex-direction: column;
+}
+
+.feed-check-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 4px;
+  transition: opacity 0.3s;
+}
+.feed-check-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+.feed-check-item-checked { opacity: 0.45; }
+.feed-check-item-checked .feed-check-label {
+  text-decoration: line-through;
+  color: var(--ui-text-muted);
+}
+
+.feed-reimb-btn { margin-top: 12px; }
+
+/* ---- Sheets ---- */
+.feed-field > * { width: 100%; }
+
+.feed-segmented { max-width: 100%; }
+
+.feed-url-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.feed-url-row > :first-child { flex: 1; min-width: 0; }
+.feed-url-row > :last-child { flex-shrink: 0; white-space: nowrap; }
+
+.feed-fetch-status { margin-top: 4px; }
+
+.feed-priority-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+.feed-priority-dot-urgent { background: var(--app-urgent); }
+.feed-priority-dot-later { background: var(--ui-text-faint); }
+
+.feed-reimb-items {
+  max-height: 240px;
+  overflow-y: auto;
+}
+.feed-reimb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.feed-reimb-cost { width: 90px; flex-shrink: 0; }
+
+.feed-reimb-sum {
+  font-size: var(--ui-type-label-xl-font-size);
+  line-height: var(--ui-type-label-xl-line-height);
+  font-weight: 600;
+  padding: 8px 0;
+}
