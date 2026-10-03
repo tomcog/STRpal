@@ -27,7 +27,7 @@
     "vite-plugin-pwa": "^2.0.0"
   },
   "allowScripts": {
-    "@tomcoggia/ui@0.78.0": true,
+    "@tomcoggia/ui@0.79.0": true,
     "esbuild@0.21.5": true
   }
 }
