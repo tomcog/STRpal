@@ -13,7 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
-    "@tomcoggia/ui": "github:tomcog/component-library#v0.78.0",
+    "@tomcoggia/ui": "github:tomcog/component-library#v0.79.0",
     "heic2any": "^0.0.4",
     "lucide-react": "^1.51.0",
     "pdfjs-dist": "^4.10.38",
