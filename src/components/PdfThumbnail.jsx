@@ -9,8 +9,12 @@ import './PdfThumbnail.css';
  * it shows the plain "View … PDF" link instead.
  *
  *   <PdfThumbnail url={r.receipt_image_url} label="View Receipt PDF" />
+ *
+ * `className` lands on the link (size the thumbnail from there, e.g.
+ * `.my-class .pdf-thumb-img { max-height: … }`); other props such as onClick
+ * pass through to it.
  */
-export function PdfThumbnail({ url, label = 'View PDF' }) {
+export function PdfThumbnail({ url, label = 'View PDF', className, ...props }) {
   const [thumb, setThumb] = useState(null);
 
   useEffect(() => {
@@ -29,8 +33,9 @@ export function PdfThumbnail({ url, label = 'View PDF' }) {
 
   if (!url) return null;
   return (
-    <a className={thumb ? 'pdf-thumb' : 'pdf-chip'} href={url} target="_blank" rel="noopener noreferrer"
-      aria-label={thumb ? label : undefined}>
+    <a className={[thumb ? 'pdf-thumb' : 'pdf-chip', className].filter(Boolean).join(' ')}
+      href={url} target="_blank" rel="noopener noreferrer"
+      aria-label={thumb ? label : undefined} {...props}>
       {thumb ? (
         <>
           <img className="pdf-thumb-img" src={thumb} alt="" draggable={false} />

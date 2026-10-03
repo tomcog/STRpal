@@ -4,7 +4,7 @@ import {
   Button, ButtonRound, Card, Checkbox, InputSelect, InputText, InputTextarea,
   Pill, Segment, SegmentedControl, Spinner,
 } from '@tomcoggia/ui';
-import { ChevronDown, FileText, GitCommitHorizontal, List, Pencil, Plus } from 'lucide-react';
+import { ChevronDown, GitCommitHorizontal, List, Pencil, Plus } from 'lucide-react';
 import { sb, SUPABASE_URL } from '../lib/supabase.js';
 import { formatCurrency, formatDate, isPdfUrl } from '../lib/format.js';
 import { navigate } from '../lib/router.js';
@@ -13,6 +13,7 @@ import { toast } from '../components/Toast.jsx';
 import { confirmDialog } from '../components/ConfirmDialog.jsx';
 import { Sheet } from '../components/Sheet.jsx';
 import { PhotoPicker } from '../components/PhotoPicker.jsx';
+import { PdfThumbnail } from '../components/PdfThumbnail.jsx';
 import './Feed.css';
 
 // Legacy shipped the status/assignee filter bar and both FABs with `hidden`
@@ -335,16 +336,13 @@ function TaskCard({ task, latestStep }) {
           {assignee}{task.due_date ? ` · Due ${formatDate(task.due_date)}` : ''}
         </div>
         {task.photo_url && (isPdfUrl(task.photo_url) ? (
-          <a
-            className="pdf-chip feed-card-pdf"
-            href={task.photo_url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <PdfThumbnail
+            url={task.photo_url}
+            label="PDF attached"
+            className="feed-card-pdf"
+            // Opens the PDF, not the task
             onClick={(e) => e.stopPropagation()}
-          >
-            <FileText aria-hidden="true" />
-            <span>PDF attached</span>
-          </a>
+          />
         ) : (
           <img className="feed-card-photo" src={task.photo_url} alt="" loading="lazy" />
         ))}

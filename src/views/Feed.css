@@ -121,6 +121,8 @@
   align-self: flex-start;
   margin-top: 4px;
 }
+/* Same height as a card photo */
+.feed-card-pdf .pdf-thumb-img { max-height: 200px; }
 
 .feed-badge-provider {
   background: var(--ui-danger-lighter);
