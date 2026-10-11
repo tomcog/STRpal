@@ -13,7 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
-    "@tomcoggia/ui": "github:tomcog/component-library#v0.80.0",
+    "@tomcoggia/ui": "github:tomcog/component-library#v0.81.0",
     "heic2any": "^0.0.4",
     "lucide-react": "^1.51.0",
     "pdfjs-dist": "^4.10.38",
@@ -27,7 +27,7 @@
     "vite-plugin-pwa": "^2.0.0"
   },
   "allowScripts": {
-    "@tomcoggia/ui@0.80.0": true,
+    "@tomcoggia/ui@0.81.0": true,
     "esbuild@0.21.5": true
   }
 }
